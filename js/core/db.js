@@ -271,17 +271,25 @@ export async function createLeaveNotice(notice) {
   return data;
 }
 
-// --- ステータス集計 ---
+// --- ステータス集計（全件取得） ---
 export async function getStatusCounts() {
   if (!db) return {};
-  const { data, error } = await db.from('items').select('status');
-  if (error) return {};
   const counts = {};
   let total = 0;
-  for (const item of (data || [])) {
-    counts[item.status] = (counts[item.status] || 0) + 1;
-    total++;
+  let offset = 0;
+  const pageSize = 1000;
+
+  while (true) {
+    const { data, error } = await db.from('items').select('status').range(offset, offset + pageSize - 1);
+    if (error || !data || data.length === 0) break;
+    for (const item of data) {
+      counts[item.status] = (counts[item.status] || 0) + 1;
+      total++;
+    }
+    if (data.length < pageSize) break;
+    offset += pageSize;
   }
+
   counts._total = total;
   return counts;
 }
