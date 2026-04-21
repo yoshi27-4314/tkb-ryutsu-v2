@@ -1,0 +1,284 @@
+/**
+ * テイクバック流通 v2 - メインエントリポイント
+ * モジュール構成:
+ *   入荷(intake) / 販売(sales) / 取引(trade) / 業務(ops)
+ */
+import { CONFIG } from './core/config.js';
+import { initDB, getDB, subscribe, getStatusCounts, getTodayStats, getItems, cleanStaleLocks } from './core/db.js';
+import { getCurrentStaff, showLoginScreen } from './core/auth.js';
+import { registerRoute, navigate } from './core/router.js';
+import { showToast, showLoading, statusBadge, formatPrice, emptyState, escapeHtml } from './core/ui.js';
+import { renderIntake } from './intake/index.js';
+import { renderSales } from './sales/index.js';
+import { renderTrade } from './trade/index.js';
+import { renderOps } from './ops/index.js';
+
+const app = document.getElementById('app');
+
+// --- ルート登録 ---
+registerRoute('home', renderHome);
+registerRoute('intake', (p) => renderIntake(getContentEl(), p));
+registerRoute('sales', (p) => renderSales(getContentEl(), p));
+registerRoute('trade', (p) => renderTrade(getContentEl(), p));
+registerRoute('ops', (p) => renderOps(getContentEl(), p));
+
+function getContentEl() {
+  return document.getElementById('mainContent') || app;
+}
+
+// --- アプリ起動 ---
+async function boot() {
+  const staff = getCurrentStaff();
+  if (!staff) {
+    showLoginScreen(app, (s) => {
+      boot(); // 再起動
+    });
+    return;
+  }
+
+  // DB初期化
+  if (!initDB()) {
+    app.innerHTML = `<div style="padding:40px;text-align:center;color:#f44336;">
+      <p>データベースに接続できません</p>
+      <p style="font-size:12px;color:#888;margin-top:8px;">ページを再読み込みしてください</p>
+    </div>`;
+    return;
+  }
+
+  // 古いロック解除
+  await cleanStaleLocks();
+
+  // メインUI描画
+  renderShell();
+  navigate('home');
+
+  // リアルタイム更新
+  subscribe((table, payload) => {
+    if (table === 'items') {
+      updateNavBadges();
+    }
+  });
+}
+
+// --- シェル（ヘッダー + ボトムナビ + コンテンツ領域） ---
+function renderShell() {
+  const staff = getCurrentStaff();
+  app.innerHTML = `
+    <div class="header">
+      <div>
+        <div class="header-title">テイクバック流通</div>
+        <div class="header-subtitle">${escapeHtml(staff.name)} | v${CONFIG.APP_VERSION}</div>
+      </div>
+      <button class="header-action" id="headerMypage">👤</button>
+    </div>
+    <div class="main-content" id="mainContent"></div>
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-route="home">
+        <span class="nav-icon">🏠</span>
+        <span>ホーム</span>
+      </button>
+      <button class="nav-item" data-route="intake">
+        <span class="nav-icon" style="position:relative;">📷<span class="nav-badge" id="badgeIntake" style="display:none;"></span></span>
+        <span>分荷判定</span>
+      </button>
+      <button class="nav-item" data-route="sales">
+        <span class="nav-icon" style="position:relative;">🏷️<span class="nav-badge" id="badgeSales" style="display:none;"></span></span>
+        <span>出品</span>
+      </button>
+      <button class="nav-item" data-route="trade">
+        <span class="nav-icon" style="position:relative;">📦<span class="nav-badge" id="badgeTrade" style="display:none;"></span></span>
+        <span>取引ナビ</span>
+      </button>
+      <button class="nav-item" data-route="ops">
+        <span class="nav-icon">⚙️</span>
+        <span>業務</span>
+      </button>
+    </nav>
+  `;
+
+  // ナビクリック
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', () => navigate(btn.dataset.route));
+  });
+
+  // マイページ
+  document.getElementById('headerMypage')?.addEventListener('click', () => {
+    navigate('ops', { tab: 'mypage' });
+  });
+
+  updateNavBadges();
+}
+
+// --- ナビバッジ更新 ---
+async function updateNavBadges() {
+  const counts = await getStatusCounts();
+
+  const intakeCount = (counts['分荷確定'] || 0) + (counts['撮影待ち'] || 0);
+  const salesCount = (counts['出品待ち'] || 0);
+  const tradeCount = (counts['落札済み'] || 0) + (counts['梱包待ち'] || 0) + (counts['梱包完了'] || 0) + (counts['入金確認済み'] || 0);
+
+  setBadge('badgeIntake', intakeCount);
+  setBadge('badgeSales', salesCount);
+  setBadge('badgeTrade', tradeCount);
+}
+
+function setBadge(id, count) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (count > 0) {
+    el.textContent = count > 99 ? '99+' : count;
+    el.style.display = 'flex';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+// --- ホーム画面 ---
+async function renderHome() {
+  const content = getContentEl();
+  showLoading(content, 'データを読み込み中...');
+
+  const [counts, todayStats] = await Promise.all([
+    getStatusCounts(),
+    getTodayStats(),
+  ]);
+
+  const staff = getCurrentStaff();
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+  const duty = CONFIG.DUTY_ROTATION[dayOfWeek] || {};
+
+  // ボトルネック検出
+  const bottlenecks = [];
+  if ((counts['出品待ち'] || 0) > 100) bottlenecks.push({ msg: `出品待ち ${counts['出品待ち']}件 — 在庫が滞留中`, level: 'danger' });
+  if ((counts['梱包待ち'] || 0) > 10) bottlenecks.push({ msg: `梱包待ち ${counts['梱包待ち']}件`, level: 'warning' });
+  if ((counts['確認/相談'] || 0) > 5) bottlenecks.push({ msg: `確認/相談 ${counts['確認/相談']}件 — 浅野さんの判断待ち`, level: 'warning' });
+
+  content.innerHTML = `
+    <div class="fade-in">
+      <!-- 挨拶 -->
+      <div style="padding:20px 16px 8px;">
+        <div style="font-size:20px;font-weight:700;">おはようございます、${escapeHtml(staff.name.split(/[　 ]/)[0])}さん</div>
+        <div style="color:var(--text-secondary);font-size:13px;">${today.getMonth()+1}月${today.getDate()}日（${dayNames[dayOfWeek]}）</div>
+      </div>
+
+      <!-- ボトルネック警告 -->
+      ${bottlenecks.length > 0 ? `
+        <div style="padding:0 16px;">
+          ${bottlenecks.map(b => `
+            <div style="background:${b.level === 'danger' ? '#2a0a0a' : '#2a1a0a'};border-left:3px solid ${b.level === 'danger' ? 'var(--danger)' : 'var(--warning)'};padding:10px 12px;margin:4px 0;border-radius:0 8px 8px 0;font-size:13px;color:${b.level === 'danger' ? '#f88' : '#fda'};">
+              ${b.level === 'danger' ? '🚨' : '⚠️'} ${b.msg}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      <!-- 今日の実績 -->
+      <div class="section-title">今日の実績</div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-num" style="color:var(--info);">${todayStats.judged}</div>
+          <div class="stat-label">分荷判定</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100, todayStats.judged / CONFIG.DAILY_KPI.bunka * 100)}%;background:var(--info);"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" style="color:var(--gold);">${todayStats.listed}</div>
+          <div class="stat-label">出品</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100, todayStats.listed / CONFIG.DAILY_KPI.shuppin * 100)}%;background:var(--gold);"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" style="color:var(--success);">${todayStats.packed}</div>
+          <div class="stat-label">梱包</div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${Math.min(100, todayStats.packed / CONFIG.DAILY_KPI.konpo * 100)}%;background:var(--success);"></div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" style="color:var(--purple);">${todayStats.shipped}</div>
+          <div class="stat-label">出荷</div>
+        </div>
+      </div>
+
+      <!-- 在庫ステータス -->
+      <div class="section-title">在庫ステータス（${counts._total || 0}件）</div>
+      <div class="stats-grid">
+        <div class="stat-card" onclick="window.__nav('intake')">
+          <div class="stat-num" style="color:var(--info);">${(counts['分荷確定'] || 0) + (counts['撮影待ち'] || 0)}</div>
+          <div class="stat-label">入荷待ち</div>
+        </div>
+        <div class="stat-card" onclick="window.__nav('sales')">
+          <div class="stat-num" style="color:var(--warning);">${counts['出品待ち'] || 0}</div>
+          <div class="stat-label">出品待ち</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-num" style="color:var(--success);">${counts['出品中'] || 0}</div>
+          <div class="stat-label">出品中</div>
+        </div>
+        <div class="stat-card" onclick="window.__nav('trade')">
+          <div class="stat-num" style="color:var(--purple);">${(counts['落札済み'] || 0) + (counts['入金待ち'] || 0) + (counts['入金確認済み'] || 0)}</div>
+          <div class="stat-label">取引中</div>
+        </div>
+      </div>
+
+      <!-- クイックアクション -->
+      <div class="section-title">クイックアクション</div>
+      <div style="padding:0 16px;display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-primary btn-full" onclick="window.__nav('intake')" style="font-size:16px;padding:16px;">
+          📷 撮影を開始する
+        </button>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button class="btn btn-secondary" onclick="window.__nav('trade')">📦 出荷登録</button>
+          <button class="btn btn-secondary" onclick="window.__nav('ops', {tab:'expense'})">🧾 経費精算</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <button class="btn btn-secondary" onclick="window.__nav('ops', {tab:'attendance'})">🕐 出退勤</button>
+          <button class="btn btn-secondary" onclick="window.__nav('ops', {tab:'chat'})">💬 チャット</button>
+        </div>
+      </div>
+
+      <!-- 今日の当番 -->
+      ${duty && Object.keys(duty).length > 0 ? `
+        <div class="section-title">今日の当番</div>
+        <div class="card">
+          ${Object.entries(duty).map(([task, person]) => {
+            if (!person) return '';
+            const names = Array.isArray(person) ? person.join(', ') : person;
+            return `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">${task}</span><span>${names}</span></div>`;
+          }).join('')}
+        </div>
+      ` : ''}
+
+      <!-- 確認/相談 待ちリスト（管理者のみ） -->
+      ${staff.role === 'admin' && (counts['確認/相談'] || 0) > 0 ? `
+        <div class="section-title" style="color:var(--danger);">確認/相談 待ち（${counts['確認/相談']}件）</div>
+        <div id="consultList" style="padding:0 16px;">読み込み中...</div>
+      ` : ''}
+
+      <div style="height:40px;"></div>
+    </div>
+  `;
+
+  // グローバルナビ関数
+  window.__nav = (route, params) => navigate(route, params || {});
+
+  // 相談待ちリスト（管理者）
+  if (staff.role === 'admin' && (counts['確認/相談'] || 0) > 0) {
+    const consultItems = await getItems({ status: ['確認/相談', '確認／相談', '確認/打合せ'] });
+    const consultEl = document.getElementById('consultList');
+    if (consultEl) {
+      consultEl.innerHTML = consultItems.map(item => `
+        <div class="card" style="margin:4px 0;cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;">
+            <div>
+              <div style="font-weight:700;font-size:14px;">${escapeHtml(item.product_name)}</div>
+              <div style="font-size:12px;color:var(--text-secondary);">${item.mgmt_num} | ${escapeHtml(item.channel_name || item.channel || '')} | ${formatPrice(item.estimated_price_max)}</div>
+            </div>
+            ${statusBadge(item.status)}
+          </div>
+        </div>
+      `).join('') || '<p style="color:#888;font-size:13px;">なし</p>';
+    }
+  }
+}
+
+// --- 起動 ---
+boot();
