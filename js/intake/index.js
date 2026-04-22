@@ -312,8 +312,29 @@ async function handleAIJudgment() {
     }
 
     const result = await res.json();
-    // 現行Edge Functionのレスポンス形式に合わせる
-    state.aiResult = result.success ? result.judgment : result;
+    // 現行Edge Functionのレスポンス形式をv2の内部形式に変換
+    const j = result.success ? result.judgment : result;
+    state.aiResult = {
+      productName: j.productName || '',
+      maker: j.maker || '',
+      modelNumber: j.modelNumber || '',
+      category: j.category || '',
+      condition: j.condition || '',
+      conditionNote: j.conditionNote || '',
+      channel: j.channel || '',
+      estimatedPriceMin: j.estimatedPrice?.min ?? j.estimatedPriceMin ?? 0,
+      estimatedPriceMax: j.estimatedPrice?.max ?? j.estimatedPriceMax ?? 0,
+      startPrice: j.startPrice ?? 0,
+      targetPrice: j.targetPrice ?? 0,
+      score: j.score ?? 0,
+      confidence: j.confidence ?? (j.needsApproval ? 0.5 : 0.8),
+      explanation: j.explanation || '',
+      estimatedSize: j.estimatedSize || '',
+      needsApproval: j.needsApproval || false,
+      approvalReason: j.approvalReason || '',
+      listingTitle: j.listingTitle || '',
+      listingDescription: j.listingDescription || '',
+    };
     state.step = 'result';
     render();
   } catch (e) {
@@ -599,25 +620,23 @@ function handleConsult() {
       const item = {
         mgmt_num: mgmtNum,
         status: CONFIG.STATUS.CONSULT,
-        source_type: state.sourceType,
-        source_category: state.sourceCategory,
         product_name: r.productName || '',
         maker: r.maker || '',
         model_number: r.modelNumber || '',
         category: r.category || '',
-        condition_rank: r.condition || '',
+        condition: r.condition || '',
         channel_name: r.channel || '',
-        score: r.score ?? null,
-        ai_confidence: r.confidence ?? null,
-        estimated_price_min: r.estimatedPriceMin ?? null,
-        estimated_price_max: r.estimatedPriceMax ?? null,
-        start_price: r.startPrice ?? null,
-        target_price: r.targetPrice ?? null,
-        ai_explanation: r.explanation || '',
-        barcode: state.barcode || null,
+        priority_score: r.score ?? 0,
+        ai_confidence: r.confidence != null ? String(r.confidence) : '',
+        estimated_price_min: r.estimatedPriceMin ?? 0,
+        estimated_price_max: r.estimatedPriceMax ?? 0,
+        start_price: r.startPrice ?? 0,
+        target_price: r.targetPrice ?? 0,
+        listing_account: state.sourceType || '',
+        memo: (reason || '相談依頼') + (r.explanation ? '\n' + r.explanation : ''),
         judged_by: staff.name,
         judged_at: new Date().toISOString(),
-        consult_reason: reason || '相談依頼',
+        source: 'app',
       };
 
       const created = await db.createItem(item);
