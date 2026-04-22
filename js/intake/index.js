@@ -498,29 +498,27 @@ async function handleConfirm(needsApproval) {
     if (!mgmtNum) throw new Error('管理番号の採番に失敗しました');
     state.mgmtNum = mgmtNum;
 
-    // 商品レコード作成
+    // 商品レコード作成（itemsテーブルのカラム名に合わせる）
     const item = {
       mgmt_num: mgmtNum,
       status: needsApproval ? CONFIG.STATUS.CONSULT : CONFIG.STATUS.JUDGED,
-      source_type: state.sourceType,
-      source_category: state.sourceCategory,
       product_name: r.productName || '',
       maker: r.maker || '',
       model_number: r.modelNumber || '',
       category: r.category || '',
-      condition_rank: r.condition || '',
+      condition: r.condition || '',
       channel_name: r.channel || '',
-      score: r.score ?? null,
-      ai_confidence: r.confidence ?? null,
-      estimated_price_min: r.estimatedPriceMin ?? null,
-      estimated_price_max: r.estimatedPriceMax ?? null,
-      start_price: r.startPrice ?? null,
-      target_price: r.targetPrice ?? null,
-      ai_explanation: r.explanation || '',
-      barcode: state.barcode || null,
+      priority_score: r.score ?? 0,
+      ai_confidence: r.confidence != null ? String(r.confidence) : '',
+      estimated_price_min: r.estimatedPriceMin ?? 0,
+      estimated_price_max: r.estimatedPriceMax ?? 0,
+      start_price: r.startPrice ?? 0,
+      target_price: r.targetPrice ?? 0,
+      listing_account: state.sourceType || '',
+      memo: r.explanation || '',
       judged_by: staff.name,
       judged_at: new Date().toISOString(),
-      consult_reason: needsApproval || null,
+      source: 'app',
     };
 
     const created = await db.createItem(item);
