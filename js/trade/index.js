@@ -463,7 +463,13 @@ async function handleTransactionOcr() {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
       },
-      body: JSON.stringify({ image: resized, type: 'transaction' }),
+      body: JSON.stringify({
+        image: resized,
+        step: 'receipt',
+        context: {
+          task: 'この取引画面のスクリーンショットから情報をJSON形式で読み取ってください: {"itemName":"商品名","price":落札価格数値,"fee":手数料数値,"shipping":送料数値,"buyer":"落札者ID","mgmtNum":"管理番号（あれば）"}',
+        },
+      }),
     });
 
     if (!response.ok) throw new Error(`OCR API error: ${response.status}`);
@@ -475,7 +481,7 @@ async function handleTransactionOcr() {
       return;
     }
 
-    renderOcrResult(result.data);
+    renderOcrResult(result.judgment || result.data);
   } catch (err) {
     console.error('Transaction OCR error:', err);
     showToast('OCR処理中にエラーが発生しました');
@@ -602,7 +608,13 @@ async function handleSalesOcr(item) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
       },
-      body: JSON.stringify({ image: resized, type: 'transaction' }),
+      body: JSON.stringify({
+        image: resized,
+        step: 'receipt',
+        context: {
+          task: 'この取引画面のスクリーンショットから情報をJSON形式で読み取ってください: {"itemName":"商品名","price":落札価格数値,"fee":手数料数値,"shipping":送料数値,"buyer":"落札者ID","mgmtNum":"管理番号（あれば）"}',
+        },
+      }),
     });
 
     if (!response.ok) throw new Error(`OCR API error: ${response.status}`);
@@ -615,7 +627,7 @@ async function handleSalesOcr(item) {
     }
 
     // OCR結果を売上編集フォームに反映
-    const ocrData = result.data;
+    const ocrData = result.judgment || result.data;
     renderSalesEditForm(item, {
       sold_price: ocrData.sold_price || item.sold_price,
       platform_fee: ocrData.platform_fee || item.platform_fee,
@@ -1010,16 +1022,23 @@ function renderShippingScreen(item) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
         },
-        body: JSON.stringify({ image: resized, type: 'tracking' }),
+        body: JSON.stringify({
+          image: resized,
+          step: 'receipt',
+          context: {
+            task: 'この送り状の写真から追跡番号と運送会社を読み取ってJSON形式で返してください: {"tracking_number":"追跡番号","carrier":"運送会社名"}',
+          },
+        }),
       });
 
       if (!response.ok) throw new Error(`OCR error: ${response.status}`);
       const result = await response.json();
+      const ocrData = result.judgment || result.data || {};
 
-      if (result.success && result.data?.tracking_number) {
+      if (result.success && ocrData.tracking_number) {
         const trackingInput = _container.querySelector('#shipTracking');
-        if (trackingInput) trackingInput.value = result.data.tracking_number;
-        if (result.data.carrier) {
+        if (trackingInput) trackingInput.value = ocrData.tracking_number;
+        if (ocrData.carrier) {
           selectedCarrier = result.data.carrier;
           _container.querySelectorAll('#shipCarrierGrid [data-carrier]').forEach(b => {
             const isActive = b.dataset.carrier === selectedCarrier;

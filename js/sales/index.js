@@ -495,13 +495,19 @@ async function generateAIListing(container, item, type) {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
+        'apikey': CONFIG.AWAI_KEY,
       },
       body: JSON.stringify({
-        productName: item.product_name || '',
-        maker: item.maker || '',
-        condition: item.condition_rank || '',
-        channel: item.channel_name || '',
-        photos: photoData,
+        image: photoData[0] || null,
+        images: photoData.length > 0 ? photoData : null,
+        step: 'judge',
+        context: {
+          task: 'listing',
+          productName: item.product_name || '',
+          maker: item.maker || '',
+          condition: item.condition || '',
+          channel: item.channel_name || '',
+        },
       }),
     });
 
@@ -509,7 +515,12 @@ async function generateAIListing(container, item, type) {
       throw new Error(`HTTP ${res.status}`);
     }
 
-    const data = await res.json();
+    const result = await res.json();
+    const j = result.success ? result.judgment : result;
+    const data = {
+      title: j.listingTitle || j.productName || '',
+      description: j.listingDescription || '',
+    };
 
     if (type === 'title' && data.title) {
       // スタッフマーク自動付与

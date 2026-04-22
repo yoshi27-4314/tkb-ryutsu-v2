@@ -253,13 +253,20 @@ function renderExpenseRegister(container, month, department, staff) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
         },
-        body: JSON.stringify({ image: resized }),
+        body: JSON.stringify({
+          image: resized,
+          step: 'receipt',
+          context: {
+            task: 'このレシート/領収書から以下の情報をJSON形式で読み取ってください: {"date":"YYYY-MM-DD","shop":"店舗名","amount":金額数値,"tax":"10%or8%orなし","category":"勘定科目推定","memo":"品目"}',
+          },
+        }),
       });
 
       if (!resp.ok) throw new Error(`OCR失敗: ${resp.status}`);
 
       const result = await resp.json();
-      applyOcrResult(container, result);
+      const ocrData = result.success ? result.judgment : result;
+      applyOcrResult(container, ocrData);
       showToast('OCR完了');
     } catch (e) {
       console.error('OCR error:', e);
@@ -1089,10 +1096,11 @@ function renderAIChat(container, staff) {
           'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
         },
         body: JSON.stringify({
-          message,
+          image: null,
+          step: 'chat',
           context: {
+            question: message,
             staffName: staff.name,
-            department: staff.company || 'テイクバック',
           },
         }),
       });
@@ -1102,7 +1110,7 @@ function renderAIChat(container, staff) {
       if (!resp.ok) throw new Error(`AI応答失敗: ${resp.status}`);
 
       const data = await resp.json();
-      const reply = data.reply || '応答を取得できませんでした。';
+      const reply = data.raw || data.reply || (data.success && data.judgment) || '応答を取得できませんでした。';
 
       history.push({ role: 'ai', content: reply });
     } catch (e) {
