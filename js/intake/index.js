@@ -1052,11 +1052,11 @@ async function uploadToDrive(base64Image, mgmtNum, photoIndex) {
     headers: {
       'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
       'Content-Type': 'application/json',
+      'apikey': CONFIG.AWAI_KEY,
     },
     body: JSON.stringify({
-      image: base64Image,
-      mgmtNum,
-      photoIndex,
+      managementNumber: mgmtNum,
+      images: [base64Image],
     }),
   });
 
