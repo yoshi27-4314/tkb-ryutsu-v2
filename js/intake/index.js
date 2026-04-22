@@ -287,19 +287,21 @@ async function handleAIJudgment() {
   try {
     const body = {
       image: state.judgmentPhoto,
-      sourceType: state.sourceCategory === 'jisha' ? 'jisha' : 'itaku',
+      images: [state.judgmentPhoto],
+      step: state.barcode ? 'book' : 'judge',
       context: {
         staffName: staff.name,
         sourceId: state.sourceType,
-        barcode: state.barcode || null,
+        bookInfo: state.barcode ? { isbn: state.barcode } : undefined,
       },
     };
 
-    const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/ai-judgment`, {
+    const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
         'Content-Type': 'application/json',
+        'apikey': CONFIG.AWAI_KEY,
       },
       body: JSON.stringify(body),
     });
@@ -309,7 +311,9 @@ async function handleAIJudgment() {
       throw new Error(`AI判定エラー (${res.status}): ${errText}`);
     }
 
-    state.aiResult = await res.json();
+    const result = await res.json();
+    // 現行Edge Functionのレスポンス形式に合わせる
+    state.aiResult = result.success ? result.judgment : result;
     state.step = 'result';
     render();
   } catch (e) {
@@ -1045,7 +1049,7 @@ function renderDone() {
 async function uploadToDrive(base64Image, mgmtNum, photoIndex) {
   if (!base64Image || !mgmtNum) return null;
 
-  const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/upload-to-drive`, {
+  const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-drive`, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,

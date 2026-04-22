@@ -247,7 +247,7 @@ function renderExpenseRegister(container, month, department, staff) {
       const base64 = await fileToBase64(file);
       const resized = await resizeImage(base64, 1200);
 
-      const resp = await fetch(`${CONFIG.AWAI_URL}/functions/v1/receipt-ocr`, {
+      const resp = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -1082,7 +1082,7 @@ function renderAIChat(container, staff) {
     messagesEl.scrollTop = messagesEl.scrollHeight;
 
     try {
-      const resp = await fetch(`${CONFIG.AWAI_URL}/functions/v1/ai-chat`, {
+      const resp = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

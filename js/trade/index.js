@@ -457,7 +457,7 @@ async function handleTransactionOcr() {
     const base64 = await fileToBase64(file);
     const resized = await resizeImage(base64, 1600);
 
-    const response = await fetch(`${CONFIG.AWAI_URL}/functions/v1/ocr-screenshot`, {
+    const response = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -596,7 +596,7 @@ async function handleSalesOcr(item) {
     const base64 = await fileToBase64(file);
     const resized = await resizeImage(base64, 1600);
 
-    const response = await fetch(`${CONFIG.AWAI_URL}/functions/v1/ocr-screenshot`, {
+    const response = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1004,7 +1004,7 @@ function renderShippingScreen(item) {
       const base64 = await fileToBase64(file);
       const resized = await resizeImage(base64, 1600);
 
-      const response = await fetch(`${CONFIG.AWAI_URL}/functions/v1/ocr-screenshot`, {
+      const response = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

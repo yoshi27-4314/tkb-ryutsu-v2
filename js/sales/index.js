@@ -490,7 +490,7 @@ async function generateAIListing(container, item, type) {
     // 最大3枚の写真をbase64で送る（既にURLの場合はURLのまま）
     const photoData = photos.slice(0, 3);
 
-    const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/generate-listing`, {
+    const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
