@@ -539,6 +539,7 @@ async function handleConfirm(needsApproval) {
       memo: r.explanation || '',
       judged_by: staff.name,
       judged_at: new Date().toISOString(),
+      staff_mark: CONFIG.STAFF_MARKS[staff.name] || '',
       source: 'app',
     };
 
@@ -636,6 +637,7 @@ function handleConsult() {
         memo: (reason || '相談依頼') + (r.explanation ? '\n' + r.explanation : ''),
         judged_by: staff.name,
         judged_at: new Date().toISOString(),
+        staff_mark: CONFIG.STAFF_MARKS[staff.name] || '',
         source: 'app',
       };
 

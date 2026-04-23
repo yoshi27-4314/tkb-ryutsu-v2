@@ -180,13 +180,16 @@ function renderItemCard(item) {
   const priorityBadge = item.priority_score != null
     ? `<span style="font-size:10px;color:#C5A258;margin-left:4px;">★${item.priority_score}</span>`
     : '';
+  const markBadge = item.staff_mark
+    ? `<span style="font-size:12px;color:#C5A258;margin-right:4px;">${escapeHtml(item.staff_mark)}</span>`
+    : '';
 
   return `
     <div class="sales-card" data-mgmt="${escapeHtml(item.mgmt_num)}"
       style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;
       border:1px solid #222;transition:transform 0.15s;active:scale(0.98);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-        <span style="font-size:12px;color:#C5A258;font-weight:bold;">${escapeHtml(item.mgmt_num)}</span>
+        <span style="font-size:12px;color:#C5A258;font-weight:bold;">${markBadge}${escapeHtml(item.mgmt_num)}</span>
         <div>${statusBadge(item.status)}${lockedBadge}</div>
       </div>
       <div style="font-size:14px;color:#e0e0e0;font-weight:bold;margin-bottom:4px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
@@ -638,6 +641,7 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
 
   try {
     // 商品情報更新
+    const staffMark = CONFIG.STAFF_MARKS[staff?.name] || '';
     const updates = {
       listing_title: title,
       listing_description: description,
@@ -646,6 +650,7 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
       listed_by: staff?.name || '',
       listed_at: new Date().toISOString(),
       listing_duration_seconds: elapsed,
+      staff_mark: staffMark,
     };
 
     // チャンネル変更
