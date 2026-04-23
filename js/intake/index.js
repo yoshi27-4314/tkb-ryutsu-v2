@@ -118,9 +118,10 @@ function render() {
     case 'photo':       renderPhotoStep();     break;
     case 'storage':     renderStorageStep();   break;
     case 'done':        renderDone();          break;
-    case 'bulk_import': renderBulkImport();    break;
-    case 'done_bulk':   renderDoneBulk();      break;
-    default:            renderSourceSelect();
+    case 'bulk_import':     renderBulkImport();    break;
+    case 'done_bulk':       renderDoneBulk();      break;
+    case 'bulk_photo_link': renderBulkPhotoLink(); break;
+    default:                renderSourceSelect();
   }
 }
 
@@ -1489,6 +1490,11 @@ function renderDoneBulk() {
                border:none;cursor:pointer;background:#C5A258;color:#000;margin-bottom:10px;">
         ホームに戻る
       </button>
+      <button id="doneBulkPhotoLink"
+        style="width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:bold;
+               border:none;cursor:pointer;background:#2e7d32;color:#fff;margin-bottom:10px;">
+        📷 写真を紐付ける
+      </button>
       <button id="doneBulkContinue"
         style="width:100%;padding:14px;border-radius:12px;font-size:14px;
                border:1px solid #C5A258;background:transparent;color:#C5A258;cursor:pointer;">
@@ -1501,6 +1507,10 @@ function renderDoneBulk() {
     state = resetState();
     render();
   });
+  containerRef.querySelector('#doneBulkPhotoLink').addEventListener('click', () => {
+    state.step = 'bulk_photo_link';
+    render();
+  });
   containerRef.querySelector('#doneBulkContinue').addEventListener('click', () => {
     state.bulkItems = [];
     state.bulkPhoto = null;
@@ -1510,9 +1520,238 @@ function renderDoneBulk() {
   });
 
   addTouchFeedback(containerRef.querySelector('#doneBulkHome'));
+  addTouchFeedback(containerRef.querySelector('#doneBulkPhotoLink'));
   addTouchFeedback(containerRef.querySelector('#doneBulkContinue'));
 
   loadTodayCount();
+}
+
+// ── 写真紐付け ────────────────────────────────────
+
+async function renderBulkPhotoLink() {
+  // Get all bulk-imported Watanabe items
+  const items = await db.getItems({
+    channel: '渡辺質店',
+    orderBy: 'partner_item_number',
+    ascending: true,
+    limit: 200,
+  });
+
+  const watanabeItems = items.filter(i => i.consignment_partner === '渡辺質店');
+  const withPhoto = watanabeItems.filter(i => i.main_photo_url || i.drive_url);
+  const withoutPhoto = watanabeItems.filter(i => !i.main_photo_url && !i.drive_url);
+
+  containerRef.innerHTML = `
+    <div style="padding:16px 16px 120px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <button id="photoLinkBack" style="background:none;border:none;color:#C5A258;font-size:22px;cursor:pointer;">←</button>
+        <h2 style="color:#C5A258;font-size:18px;margin:0;">写真紐付け</h2>
+        <span style="color:#888;font-size:13px;margin-left:auto;">写真済み ${withPhoto.length}/${watanabeItems.length}件</span>
+      </div>
+
+      <!-- 品番で検索 -->
+      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;">
+        <p style="color:#888;font-size:12px;margin-bottom:8px;">品番で商品を探す</p>
+        <div style="display:flex;gap:8px;">
+          <input id="photoLinkSearch" type="text" inputmode="numeric" placeholder="品番を入力（例: 821）"
+            style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid #333;background:#0d1117;color:#e0e0e0;font-size:15px;outline:none;">
+          <button id="photoLinkSearchBtn" style="padding:10px 16px;border-radius:8px;background:#C5A258;color:#000;border:none;font-weight:bold;cursor:pointer;">検索</button>
+        </div>
+        <button id="photoLinkOcrBtn" style="width:100%;margin-top:8px;padding:10px;border-radius:8px;border:1px solid #555;background:transparent;color:#aaa;font-size:13px;cursor:pointer;">
+          📷 品番タグを撮影して検索
+        </button>
+      </div>
+
+      <!-- 検索結果/撮影エリア (initially hidden) -->
+      <div id="photoLinkResult" style="display:none;"></div>
+
+      <!-- 未紐付けリスト -->
+      <div style="margin-top:16px;">
+        <p style="color:#888;font-size:12px;margin-bottom:8px;">写真未登録（${withoutPhoto.length}件）</p>
+        <div id="photoLinkList">
+          ${withoutPhoto.map(item => `
+            <div class="photo-link-item" data-num="${escapeHtml(item.partner_item_number || '')}" data-mgmt="${escapeHtml(item.mgmt_num)}"
+              style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#1a1a2e;border-radius:8px;margin-bottom:6px;cursor:pointer;border:1px solid #222;">
+              <span style="color:#f44336;font-size:16px;">❌</span>
+              <div style="flex:1;">
+                <span style="color:#C5A258;font-size:12px;">${escapeHtml(item.partner_item_number || item.mgmt_num)}</span>
+                <div style="font-size:13px;color:#e0e0e0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.product_name)}</div>
+              </div>
+              <span style="color:#888;font-size:12px;">${item.start_price ? '\u00a5' + item.start_price.toLocaleString() : ''}</span>
+            </div>
+          `).join('')}
+          ${withPhoto.length > 0 ? `
+            <p style="color:#666;font-size:11px;margin-top:12px;">写真登録済み（${withPhoto.length}件）</p>
+            ${withPhoto.slice(0, 5).map(item => `
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0d1117;border-radius:8px;margin-bottom:4px;opacity:0.5;">
+                <span style="color:#4caf50;font-size:16px;">✅</span>
+                <span style="font-size:12px;color:#888;">${escapeHtml(item.partner_item_number || item.mgmt_num)} ${escapeHtml(item.product_name).slice(0,20)}</span>
+              </div>
+            `).join('')}
+            ${withPhoto.length > 5 ? `<p style="color:#555;font-size:11px;text-align:center;">他 ${withPhoto.length - 5}件</p>` : ''}
+          ` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Events
+  containerRef.querySelector('#photoLinkBack').addEventListener('click', () => {
+    state.step = 'source';
+    render();
+  });
+
+  // Search by number
+  const searchInput = containerRef.querySelector('#photoLinkSearch');
+  containerRef.querySelector('#photoLinkSearchBtn').addEventListener('click', () => {
+    const num = searchInput.value.trim();
+    if (num) showPhotoLinkItem(num, watanabeItems);
+  });
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const num = searchInput.value.trim();
+      if (num) showPhotoLinkItem(num, watanabeItems);
+    }
+  });
+
+  // OCR search
+  containerRef.querySelector('#photoLinkOcrBtn').addEventListener('click', async () => {
+    try {
+      const file = await capturePhoto();
+      if (!file) return;
+      showToast('品番を読み取り中...');
+      const base64 = await fileToBase64(file);
+      const resized = await resizeImage(base64, 800);
+
+      const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
+          'apikey': CONFIG.AWAI_KEY,
+        },
+        body: JSON.stringify({
+          image: resized,
+          step: 'receipt',
+          context: { task: 'この画像から品番（数字）を読み取ってください。品番の数字だけをJSON形式で返してください: {"number":"品番"}' },
+        }),
+      });
+
+      const result = await res.json();
+      const data = result.judgment || result.raw || result;
+      let num = '';
+      if (typeof data === 'string') {
+        const match = data.match(/\d{2,}/);
+        if (match) num = match[0];
+      } else if (data.number) {
+        num = data.number;
+      }
+
+      if (num) {
+        searchInput.value = num;
+        showPhotoLinkItem(num, watanabeItems);
+      } else {
+        showToast('品番を読み取れませんでした');
+      }
+    } catch (e) {
+      console.error('品番OCRエラー:', e);
+      showToast('読み取りに失敗しました');
+    }
+  });
+
+  // Tap item in list to search
+  containerRef.querySelectorAll('.photo-link-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const num = el.dataset.num || el.dataset.mgmt;
+      searchInput.value = num;
+      showPhotoLinkItem(num, watanabeItems);
+    });
+  });
+}
+
+function showPhotoLinkItem(searchNum, allItems) {
+  // Find by partner_item_number or mgmt_num
+  const item = allItems.find(i =>
+    i.partner_item_number === searchNum ||
+    i.mgmt_num === searchNum ||
+    (i.partner_item_number && i.partner_item_number.includes(searchNum))
+  );
+
+  const resultDiv = containerRef.querySelector('#photoLinkResult');
+  if (!item) {
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = `<div style="background:#2a0a0a;border-radius:8px;padding:12px;color:#f88;font-size:13px;margin-bottom:12px;">品番「${escapeHtml(searchNum)}」の商品が見つかりません</div>`;
+    return;
+  }
+
+  const hasPhoto = item.main_photo_url || item.drive_url;
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = `
+    <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #C5A258;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+        <span style="color:#C5A258;font-weight:bold;">品番: ${escapeHtml(item.partner_item_number || searchNum)}</span>
+        <span style="color:#888;font-size:12px;">${escapeHtml(item.mgmt_num)}</span>
+      </div>
+      <div style="font-size:15px;color:#e0e0e0;font-weight:bold;margin-bottom:4px;">${escapeHtml(item.product_name)}</div>
+      <div style="font-size:13px;color:#888;margin-bottom:12px;">希望価格: \u00a5${(item.start_price || 0).toLocaleString()}</div>
+
+      ${hasPhoto ? '<div style="color:#4caf50;font-size:13px;margin-bottom:8px;">✅ 写真登録済み</div>' : ''}
+
+      <div id="photoLinkPreview" style="margin-bottom:12px;"></div>
+
+      <button id="photoLinkCapture" style="width:100%;padding:14px;border-radius:12px;font-size:15px;font-weight:bold;
+             border:none;cursor:pointer;background:#C5A258;color:#000;">
+        📷 商品を撮影${hasPhoto ? '（差し替え）' : ''}
+      </button>
+    </div>
+  `;
+
+  resultDiv.querySelector('#photoLinkCapture').addEventListener('click', async () => {
+    try {
+      const file = await capturePhoto();
+      if (!file) return;
+      showToast('写真を処理中...');
+      const base64 = await fileToBase64(file);
+      const resized = await resizeImage(base64, 1200);
+
+      // Show preview
+      const preview = resultDiv.querySelector('#photoLinkPreview');
+      preview.innerHTML = `
+        <img src="${resized}" style="width:100%;border-radius:8px;margin-bottom:8px;">
+        <button id="photoLinkSave" style="width:100%;padding:12px;border-radius:8px;background:#4caf50;color:#fff;border:none;font-size:14px;font-weight:bold;cursor:pointer;">
+          ✓ この写真で保存
+        </button>
+      `;
+
+      preview.querySelector('#photoLinkSave').addEventListener('click', async () => {
+        showToast('保存中...');
+
+        // Upload to Drive
+        try {
+          await uploadToDrive(resized, item.mgmt_num, 0);
+        } catch (e) {
+          console.warn('Drive upload failed:', e);
+        }
+
+        // Update item with photo info
+        await db.updateItem(item.mgmt_num, {
+          main_photo_url: 'drive_uploaded',
+          photo_count: 1,
+        });
+
+        showToast(`${item.partner_item_number || item.mgmt_num} の写真を保存しました`);
+
+        // Refresh the list
+        renderBulkPhotoLink();
+      });
+    } catch (e) {
+      console.error('写真撮影エラー:', e);
+      showToast('撮影に失敗しました');
+    }
+  });
+
+  // Scroll to result
+  resultDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ── Google Driveアップロード ──────────────────────
