@@ -1427,26 +1427,50 @@ async function handleBulkOcr() {
         image: state.bulkPhoto,
         step: 'receipt',
         context: {
-          task: 'この手書きの商品リストシートから全ての商品情報を読み取り、JSON配列で返してください。各商品は: {"number":"品番","name":"商品名","condition":"状態備考","price":希望価格数値} の形式で。価格が読み取れない場合は0にしてください。全行を漏れなく読み取ってください。',
+          task: 'この手書きの商品リストの写真です。表の各行から商品情報を読み取ってください。結果はJSON配列のみで返してください（説明文不要）。形式: [{"number":"品番(3桁の数字)","name":"商品名","condition":"状態や備考","price":希望販売価格の数値}] 。価格が読み取れない場合はprice:0にしてください。手書き文字が不鮮明でも推測して全行読み取ってください。',
         },
       }),
     });
 
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      throw new Error(`解析エラー (${res.status}): ${errText}`);
+    // Edge Functionが500を返す場合もレスポンスからデータ抽出を試みる
+    let result;
+    const resText = await res.text();
+    try {
+      result = JSON.parse(resText);
+    } catch {
+      // JSONパース失敗 → テキストからJSON配列を抽出
+      const arrMatch = resText.match(/\[[\s\S]*?\]/);
+      if (arrMatch) {
+        try { result = { items: JSON.parse(arrMatch[0]) }; } catch { /* ignore */ }
+      }
+      if (!result) {
+        throw new Error(`解析エラー (${res.status}): ${resText.slice(0, 100)}`);
+      }
     }
 
-    const result = await res.json();
     let items = [];
     const data = result.judgment || result.raw || result;
     if (typeof data === 'string') {
-      const match = data.match(/\[[\s\S]*\]/);
-      if (match) items = JSON.parse(match[0]);
+      // AIの応答テキストからJSON配列を探す
+      const match = data.match(/\[[\s\S]*?\]/);
+      if (match) {
+        try { items = JSON.parse(match[0]); } catch {
+          // JSONが不完全な場合、行ごとにパース
+          const lines = match[0].replace(/[\[\]]/g, '').split(/\},?\s*\{/);
+          for (const line of lines) {
+            try {
+              const obj = JSON.parse('{' + line.replace(/^\{/, '').replace(/\}$/, '') + '}');
+              items.push(obj);
+            } catch { /* skip malformed */ }
+          }
+        }
+      }
     } else if (Array.isArray(data)) {
       items = data;
     } else if (data.items) {
       items = data.items;
+    } else if (typeof data === 'object' && data.number) {
+      items = [data]; // 単一商品
     }
 
     if (items.length === 0) {
