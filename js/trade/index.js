@@ -432,6 +432,19 @@ function renderDetail(item) {
             ▶ トラブル: 次のステップへ
           </button>`}
       </div>
+
+      <!-- 管理操作 -->
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #333;">
+        <p style="color:#666;font-size:11px;margin-bottom:8px;">管理操作</p>
+        <div style="display:flex;gap:8px;">
+          <button id="btnRevertStatus" style="flex:1;padding:10px;border-radius:8px;border:1px solid #ff9800;background:transparent;color:#ff9800;font-size:13px;cursor:pointer;">
+            ↩ ステータスを戻す
+          </button>
+          <button id="btnDeleteItem" style="flex:1;padding:10px;border-radius:8px;border:1px solid #f44336;background:transparent;color:#f44336;font-size:13px;cursor:pointer;">
+            🗑 削除
+          </button>
+        </div>
+      </div>
     </div>`;
 
   // イベント
@@ -481,6 +494,83 @@ function renderDetail(item) {
 
   const btnTroubleNext = _container.querySelector('#btnTroubleNext');
   if (btnTroubleNext) btnTroubleNext.addEventListener('click', () => handleTroubleNext(item));
+
+  // ステータスを戻す
+  _container.querySelector('#btnRevertStatus').addEventListener('click', () => {
+    const revertOptions = {
+      '出品中':     ['出品待ち'],
+      '落札済み':   ['出品中'],
+      '連絡待ち':   ['落札済み'],
+      '送料連絡済み': ['連絡待ち'],
+      '入金待ち':   ['落札済み'],
+      '入金確認済み': ['入金待ち'],
+      '梱包待ち':   ['入金確認済み'],
+      '梱包中':     ['梱包待ち'],
+      '梱包完了':   ['梱包中', '梱包待ち'],
+      '発送済み':   ['梱包完了'],
+      '受取確認':   ['発送済み'],
+      '完了':       ['発送済み'],
+    };
+    const options = revertOptions[item.status] || [];
+    if (options.length === 0) {
+      showToast('このステータスから戻せる先がありません');
+      return;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.innerHTML = `
+      <div style="background:#1a1a2e;border-radius:16px;padding:24px;max-width:320px;width:100%;">
+        <h3 style="color:#ff9800;font-size:16px;margin:0 0 16px;">↩ ステータスを戻す</h3>
+        <p style="color:#888;font-size:12px;margin-bottom:12px;">現在: ${escapeHtml(item.status)}</p>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+          ${options.map(s => `
+            <button data-revert-to="${escapeHtml(s)}" style="padding:12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:14px;cursor:pointer;text-align:left;">
+              → ${escapeHtml(s)}
+            </button>
+          `).join('')}
+        </div>
+        <button id="revertCancel" style="width:100%;padding:10px;border-radius:8px;background:#333;color:#ccc;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#revertCancel').addEventListener('click', () => overlay.remove());
+    overlay.querySelectorAll('[data-revert-to]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const newStatus = btn.dataset.revertTo;
+        overlay.remove();
+        showConfirm(
+          `ステータスを「${newStatus}」に戻しますか？`,
+          async () => {
+            const updated = await db.updateItemStatus(item.mgmt_num, newStatus, staffName);
+            if (updated) {
+              showToast(`ステータスを「${newStatus}」に戻しました`);
+              renderDetail(updated);
+            } else {
+              showToast('更新に失敗しました');
+            }
+          }
+        );
+      });
+    });
+  });
+
+  // 商品を削除
+  _container.querySelector('#btnDeleteItem').addEventListener('click', () => {
+    showConfirm(`「${item.mgmt_num}」を削除しますか？\nこの操作は取り消せません。`, async () => {
+      const dbClient = db.getDB();
+      if (!dbClient) { showToast('DB接続エラー'); return; }
+      const { error } = await dbClient.from('items').delete().eq('mgmt_num', item.mgmt_num);
+      if (error) {
+        console.error('Delete error:', error);
+        showToast('削除に失敗しました');
+      } else {
+        showToast('商品を削除しました');
+        showLoading(_container);
+        loadAndRender();
+      }
+    });
+  });
 }
 
 function detailRow(label, value) {

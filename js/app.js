@@ -21,6 +21,7 @@ registerRoute('intake', (p) => renderIntake(getContentEl(), p));
 registerRoute('sales', (p) => renderSales(getContentEl(), p));
 registerRoute('trade', (p) => renderTrade(getContentEl(), p));
 registerRoute('ops', (p) => renderOps(getContentEl(), p));
+registerRoute('item', renderItemPage);
 
 function getContentEl() {
   return document.getElementById('mainContent') || app;
@@ -51,6 +52,16 @@ async function boot() {
   // メインUI描画
   renderShell();
   navigate('home');
+
+  // ディープリンク対応 (#item/管理番号)
+  const hash = window.location.hash;
+  if (hash.startsWith('#item/')) {
+    const mgmtNum = hash.replace('#item/', '');
+    navigate('item', { mgmtNum });
+  } else if (hash && hash !== '#home') {
+    const route = hash.replace('#', '');
+    if (route && route !== 'home') navigate(route);
+  }
 
   // リアルタイム更新
   subscribe((table, payload) => {
@@ -297,6 +308,34 @@ async function renderHome() {
         </div>
       `).join('') || '<p style="color:#888;font-size:13px;">なし</p>';
     }
+  }
+}
+
+// --- 商品ディープリンク (#item/管理番号) ---
+async function renderItemPage(params) {
+  const content = getContentEl();
+  const mgmtNum = params.mgmtNum || '';
+  if (!mgmtNum) { navigate('home'); return; }
+
+  showLoading(content, '商品情報を読み込み中...');
+  const item = await getItems({ search: mgmtNum, limit: 1 });
+
+  if (!item || item.length === 0) {
+    content.innerHTML = `<div style="padding:40px;text-align:center;color:#888;">
+      <p>商品 ${escapeHtml(mgmtNum)} が見つかりません</p>
+      <button onclick="window.__nav('home')" class="btn btn-secondary" style="margin-top:16px;">ホームに戻る</button>
+    </div>`;
+    return;
+  }
+
+  const found = item[0];
+  const statusModule = CONFIG.STATUS_MODULE[found.status] || 'sales';
+
+  switch(statusModule) {
+    case 'intake': navigate('intake', { mgmtNum: found.mgmt_num }); break;
+    case 'sales': navigate('sales', { mgmtNum: found.mgmt_num }); break;
+    case 'trade': navigate('trade', { mgmtNum: found.mgmt_num }); break;
+    default: navigate('sales', { mgmtNum: found.mgmt_num });
   }
 }
 

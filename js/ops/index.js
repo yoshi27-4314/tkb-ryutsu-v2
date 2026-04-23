@@ -5,7 +5,7 @@
 import { CONFIG } from '../core/config.js';
 import * as db from '../core/db.js';
 import { getCurrentStaff, isAdmin, logout } from '../core/auth.js';
-import { showToast, showLoading, capturePhoto, fileToBase64, resizeImage, escapeHtml, formatPrice, formatDate, formatDateTime, emptyState } from '../core/ui.js';
+import { showToast, showLoading, showConfirm, capturePhoto, fileToBase64, resizeImage, escapeHtml, formatPrice, formatDate, formatDateTime, emptyState } from '../core/ui.js';
 import { navigate } from '../core/router.js';
 
 // ============================================================
@@ -420,7 +420,7 @@ async function renderExpenseList(container, month, department, staff) {
     <div id="expenseItems">
       ${expenses.map(e => card(`
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-          <div style="flex:1;min-width:0;">
+          <div style="flex:1;min-width:0;cursor:pointer;" data-edit-expense="${e.id}">
             <div style="color:${TEXT_PRIMARY};font-size:14px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.store_name || '')}</div>
             <div style="color:${TEXT_SECONDARY};font-size:12px;margin-top:2px;">${escapeHtml(e.category || '')} ・ ${escapeHtml(e.payment_method || '')}${e.payment_method === '立替' && e.paid_by ? ` ・ 立替: ${escapeHtml(e.paid_by)}` : ''}</div>
             <div style="color:${TEXT_MUTED};font-size:11px;margin-top:2px;">
@@ -433,9 +433,12 @@ async function renderExpenseList(container, month, department, staff) {
               </div>
             ` : ''}
           </div>
-          <div style="text-align:right;flex-shrink:0;margin-left:12px;">
-            <div style="color:${GOLD};font-size:16px;font-weight:bold;">${formatPrice(e.amount)}</div>
-            <div style="color:${TEXT_MUTED};font-size:11px;">(税${formatPrice(e.tax_amount)})</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0;margin-left:12px;gap:6px;">
+            <div style="text-align:right;">
+              <div style="color:${GOLD};font-size:16px;font-weight:bold;">${formatPrice(e.amount)}</div>
+              <div style="color:${TEXT_MUTED};font-size:11px;">(税${formatPrice(e.tax_amount)})</div>
+            </div>
+            <button data-del-expense="${e.id}" style="padding:4px 8px;border-radius:6px;border:1px solid #f4433666;background:transparent;color:#f44336;font-size:11px;cursor:pointer;">🗑</button>
           </div>
         </div>
       `)).join('')}
@@ -470,6 +473,134 @@ async function renderExpenseList(container, month, department, staff) {
       showToast(newSettled ? '精算済みにしました' : '未精算に戻しました');
       renderExpenseList(container, month, department, staff);
     });
+  });
+
+  // 経費削除ボタン
+  container.querySelectorAll('[data-del-expense]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.dataset.delExpense;
+      const expense = expenses.find(ex => String(ex.id) === String(id));
+      if (!expense) return;
+      showConfirm(`「${expense.store_name || ''}」の経費（${formatPrice(expense.amount)}）を削除しますか？`, async () => {
+        const dbClient = db.getDB();
+        if (!dbClient) { showToast('DB接続エラー'); return; }
+        const { error } = await dbClient.from('expenses').delete().eq('id', id);
+        if (error) {
+          console.error('Expense delete error:', error);
+          showToast('削除に失敗しました');
+        } else {
+          showToast('経費を削除しました');
+          renderExpenseList(container, month, department, staff);
+        }
+      });
+    });
+  });
+
+  // 経費編集（タップで編集フォーム）
+  container.querySelectorAll('[data-edit-expense]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      // 精算ボタンクリック時は編集しない
+      if (e.target.closest('[data-settle-id]')) return;
+      const id = el.dataset.editExpense;
+      const expense = expenses.find(ex => String(ex.id) === String(id));
+      if (!expense) return;
+      renderExpenseEditForm(container, expense, month, department, staff);
+    });
+  });
+}
+
+function renderExpenseEditForm(container, expense, month, department, staff) {
+  container.innerHTML = card(`
+    ${sectionTitle('経費編集')}
+
+    ${label('部門')}
+    ${selectBox('editExpDept', DEPARTMENTS, expense.department || department)}
+
+    ${label('日付')}
+    ${inputField('editExpDate', 'date', '', expense.expense_date || '')}
+
+    ${label('店名')}
+    ${inputField('editExpStore', 'text', '購入先', expense.store_name || '')}
+
+    ${label('金額（税込）')}
+    ${inputField('editExpAmount', 'number', '0', expense.amount || 0)}
+
+    ${label('税率')}
+    ${selectBox('editExpTaxRate', [
+      { value: '10', label: '10%' },
+      { value: '8', label: '8%（軽減税率）' },
+      { value: '0', label: '非課税' },
+    ], String(expense.tax_rate || 10))}
+
+    ${label('勘定科目')}
+    ${selectBox('editExpCategory', ACCOUNTING_CATEGORIES, expense.category || '', '選択してください')}
+
+    ${label('支払方法')}
+    ${selectBox('editExpPayment', PAYMENT_METHODS, expense.payment_method || '現金')}
+
+    ${label('インボイス番号（T+13桁）')}
+    ${inputField('editExpInvoice', 'text', 'T0000000000000', expense.invoice_number || '')}
+
+    ${label('備考')}
+    <textarea id="editExpMemo" rows="2" placeholder="メモ" style="width:100%;padding:10px 12px;border-radius:8px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;">${escapeHtml(expense.memo || '')}</textarea>
+
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <div style="flex:1;">${btn('キャンセル', 'btnCancelEdit', 'secondary')}</div>
+      <div style="flex:1;">${btn('更新する', 'btnUpdateExpense')}</div>
+    </div>
+  `);
+
+  container.querySelector('#btnCancelEdit').addEventListener('click', () => {
+    renderExpenseList(container, month, department, staff);
+  });
+
+  container.querySelector('#btnUpdateExpense').addEventListener('click', async () => {
+    const dept = container.querySelector('#editExpDept').value;
+    const date = container.querySelector('#editExpDate').value;
+    const store = container.querySelector('#editExpStore').value.trim();
+    const amount = parseInt(container.querySelector('#editExpAmount').value) || 0;
+    const taxRate = parseInt(container.querySelector('#editExpTaxRate').value);
+    const category = container.querySelector('#editExpCategory').value;
+    const payment = container.querySelector('#editExpPayment').value;
+    const invoice = container.querySelector('#editExpInvoice').value.trim();
+    const memo = container.querySelector('#editExpMemo').value.trim();
+
+    if (!date || !store || !amount || !category) {
+      showToast('日付・店名・金額・科目は必須です');
+      return;
+    }
+
+    if (invoice && !/^T\d{13}$/.test(invoice)) {
+      showToast('インボイス番号はT+13桁の数字です');
+      return;
+    }
+
+    const taxAmount = Math.round(amount * taxRate / (100 + taxRate));
+
+    const updates = {
+      department: dept,
+      expense_date: date,
+      store_name: store,
+      amount,
+      tax_amount: taxAmount,
+      tax_rate: taxRate,
+      category,
+      payment_method: payment,
+      invoice_number: invoice || null,
+      memo: memo || null,
+    };
+
+    const dbClient = db.getDB();
+    if (!dbClient) { showToast('DB接続エラー'); return; }
+    const { error } = await dbClient.from('expenses').update(updates).eq('id', expense.id);
+    if (error) {
+      console.error('Expense update error:', error);
+      showToast('更新に失敗しました');
+    } else {
+      showToast('経費を更新しました');
+      renderExpenseList(container, month, department, staff);
+    }
   });
 }
 
@@ -1093,9 +1224,10 @@ async function renderAttendanceCalendar(container, month, staff, params) {
           synced = `<div style="font-size:8px;color:#4caf50;">✓</div>`;
         }
 
-        return `<div style="padding:4px 2px;border-radius:8px;background:${bgColor};${isToday ? `border:1px solid ${GOLD};` : ''}min-height:44px;">
+        return `<div data-cal-date="${dateStr}" style="padding:4px 2px;border-radius:8px;background:${bgColor};${isToday ? `border:1px solid ${GOLD};` : ''}min-height:44px;cursor:${rec ? 'pointer' : 'default'};">
           <div style="color:${cellColor};font-size:13px;font-weight:${isToday ? 'bold' : 'normal'};">${day}</div>
           ${hours}${synced}
+          ${rec ? `<button data-del-att="${rec.id}" data-del-date="${dateStr}" style="display:block;margin:2px auto 0;padding:1px 4px;border:none;background:#f4433633;color:#f44336;font-size:8px;border-radius:4px;cursor:pointer;">削除</button>` : ''}
         </div>`;
       }).join('')}
     </div>
@@ -1111,6 +1243,98 @@ async function renderAttendanceCalendar(container, month, staff, params) {
   container.querySelector('#calNext').addEventListener('click', () => navMonth(1));
   container.querySelector('#calMonth').addEventListener('change', (e) => {
     renderAttendanceCalendar(container, e.target.value, staff, params);
+  });
+
+  // 勤怠日セルタップ → 編集
+  container.querySelectorAll('[data-cal-date]').forEach(cell => {
+    cell.addEventListener('click', (e) => {
+      // 削除ボタンクリック時はスキップ
+      if (e.target.closest('[data-del-att]')) return;
+      const dateStr = cell.dataset.calDate;
+      const rec = recordMap[dateStr];
+      if (!rec) return;
+      renderAttendanceEdit(container, rec, month, staff, params);
+    });
+  });
+
+  // 勤怠削除ボタン
+  container.querySelectorAll('[data-del-att]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const id = el.dataset.delAtt;
+      const dateStr = el.dataset.delDate;
+      showConfirm(`${dateStr} の勤怠記録を削除しますか？`, async () => {
+        const dbClient = db.getDB();
+        if (!dbClient) { showToast('DB接続エラー'); return; }
+        const { error } = await dbClient.from('attendance').delete().eq('id', id);
+        if (error) {
+          console.error('Attendance delete error:', error);
+          showToast('削除に失敗しました');
+        } else {
+          showToast('勤怠記録を削除しました');
+          renderAttendanceCalendar(container, month, staff, params);
+        }
+      });
+    });
+  });
+}
+
+function renderAttendanceEdit(container, record, month, staff, params) {
+  container.innerHTML = card(`
+    ${sectionTitle('勤怠修正')}
+    <p style="color:${TEXT_SECONDARY};font-size:12px;margin-bottom:12px;">${escapeHtml(record.work_date)} ・ ${escapeHtml(record.staff_name || '')}</p>
+
+    ${label('出勤時間')}
+    ${inputField('editAttStart', 'time', '', record.clock_in || '')}
+
+    ${label('退勤時間')}
+    ${inputField('editAttEnd', 'time', '', record.clock_out || '')}
+
+    ${label('休憩時間（分）')}
+    ${inputField('editAttBreak', 'number', '60', record.break_minutes || 0)}
+
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <div style="flex:1;">${btn('キャンセル', 'btnCancelAttEdit', 'secondary')}</div>
+      <div style="flex:1;">${btn('修正する', 'btnUpdateAtt')}</div>
+    </div>
+  `);
+
+  container.querySelector('#btnCancelAttEdit').addEventListener('click', () => {
+    renderAttendanceCalendar(container, month, staff, params);
+  });
+
+  container.querySelector('#btnUpdateAtt').addEventListener('click', async () => {
+    const start = container.querySelector('#editAttStart').value;
+    const end = container.querySelector('#editAttEnd').value;
+    const breakMin = parseInt(container.querySelector('#editAttBreak').value) || 0;
+
+    if (!start || !end) {
+      showToast('出勤・退勤を入力してください');
+      return;
+    }
+
+    const [sh, sm] = start.split(':').map(Number);
+    const [eh, em] = end.split(':').map(Number);
+    let actualMin = (eh * 60 + em) - (sh * 60 + sm) - breakMin;
+    if (actualMin < 0) actualMin = 0;
+
+    const updatedRecord = {
+      staff_name: record.staff_name,
+      work_date: record.work_date,
+      clock_in: start,
+      clock_out: end,
+      break_minutes: breakMin,
+      actual_minutes: actualMin,
+      recorded_by: staff.name,
+    };
+
+    const saved = await db.saveAttendance(updatedRecord);
+    if (saved) {
+      showToast('勤怠を修正しました');
+      renderAttendanceCalendar(container, month, staff, params);
+    } else {
+      showToast('修正に失敗しました');
+    }
   });
 }
 

@@ -264,6 +264,7 @@ function renderCapture() {
                  <div style="position:relative;flex-shrink:0;">
                    <img src="${p}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #333;">
                    <div style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.6);color:#C5A258;font-size:9px;padding:1px 4px;border-radius:4px;">${i + 1}</div>
+                   <button class="photo-del" data-idx="${i}" style="position:absolute;top:2px;right:2px;background:#f44336;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:20px;padding:0;">✕</button>
                  </div>
                `).join('')}
              </div>
@@ -308,8 +309,28 @@ function renderCapture() {
   });
 
   const captureArea = containerRef.querySelector('#captureArea');
-  captureArea.addEventListener('click', handleCapturePhoto);
+  captureArea.addEventListener('click', (e) => {
+    // 削除ボタンクリック時は撮影しない
+    if (e.target.closest('.photo-del')) return;
+    handleCapturePhoto();
+  });
   addTouchFeedback(captureArea);
+
+  // 写真個別削除
+  containerRef.querySelectorAll('.photo-del').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const idx = parseInt(btn.dataset.idx);
+      state.capturePhotos.splice(idx, 1);
+      if (state.capturePhotos.length > 0) {
+        state.judgmentPhoto = state.capturePhotos[0];
+      } else {
+        state.judgmentPhoto = null;
+      }
+      showToast('写真を削除しました');
+      render();
+    });
+  });
 
   const judgeBtn = containerRef.querySelector('#judgeBtn');
   judgeBtn.addEventListener('click', handleAIJudgment);
@@ -1206,13 +1227,22 @@ async function handleStorageConfirm() {
         if (j.listingTitle) updates.listing_title = j.listingTitle.slice(0, 65);
         if (j.listingDescription) {
           // 識別子を説明文の先頭に追加
+          const shippingSize = (state.aiResult && state.aiResult.shippingSize) || 60;
           const identifier = generateItemIdentifier(
             state.mgmtNum,
-            item.shipping_cost ? (state.aiResult && state.aiResult.shippingSize) || 60 : 60,
+            item.shipping_cost ? shippingSize : 60,
             item.target_price || 0,
             item.market_demand || (j.marketDemand) || 2
           );
-          updates.listing_description = identifier + '\n\n' + j.listingDescription;
+          // テンプレート自動挿入（状態・発送・取引詳細）
+          const shippingTemplate = shippingSize >= 170
+            ? CONFIG.LISTING_TEMPLATES.shippingArt('C', 1)
+            : CONFIG.LISTING_TEMPLATES.shippingSagawa(shippingSize);
+
+          updates.listing_description = identifier + '\n\n【商品説明】\n' + j.listingDescription
+            + '\n\n' + CONFIG.LISTING_TEMPLATES.conditionNotes
+            + '\n\n' + shippingTemplate
+            + '\n\n' + CONFIG.LISTING_TEMPLATES.tradingNotes;
         }
         if (j.marketDemand) updates.market_demand = j.marketDemand;
 
