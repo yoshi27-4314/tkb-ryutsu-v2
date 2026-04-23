@@ -410,7 +410,7 @@ function renderResult() {
   const r = state.aiResult;
   if (!r) { state.step = 'capture'; render(); return; }
 
-  const confidence = r.confidence ?? 0;
+  const confidence = r.confidence || 0;
   const confidenceColor = confidence >= 0.8 ? '#4caf50' : confidence >= 0.6 ? '#ff9800' : '#f44336';
   const confidencePct = Math.round(confidence * 100);
 
@@ -667,12 +667,12 @@ async function handleConfirm(needsApproval) {
       category: r.category || '',
       condition: r.condition || '',
       channel_name: r.channel || '',
-      priority_score: r.score ?? 0,
+      priority_score: r.score || 0,
       ai_confidence: r.confidence != null ? String(r.confidence) : '',
-      estimated_price_min: r.estimatedPriceMin ?? 0,
-      estimated_price_max: r.estimatedPriceMax ?? 0,
-      start_price: r.startPrice ?? 0,
-      target_price: r.targetPrice ?? 0,
+      estimated_price_min: r.estimatedPriceMin || 0,
+      estimated_price_max: r.estimatedPriceMax || 0,
+      start_price: r.startPrice || 0,
+      target_price: r.targetPrice || 0,
       listing_account: state.sourceType || '',
       memo: r.explanation || '',
       judged_by: staff.name,
@@ -771,12 +771,12 @@ function handleConsult() {
         category: r.category || '',
         condition: r.condition || '',
         channel_name: r.channel || '',
-        priority_score: r.score ?? 0,
+        priority_score: r.score || 0,
         ai_confidence: r.confidence != null ? String(r.confidence) : '',
-        estimated_price_min: r.estimatedPriceMin ?? 0,
-        estimated_price_max: r.estimatedPriceMax ?? 0,
-        start_price: r.startPrice ?? 0,
-        target_price: r.targetPrice ?? 0,
+        estimated_price_min: r.estimatedPriceMin || 0,
+        estimated_price_max: r.estimatedPriceMax || 0,
+        start_price: r.startPrice || 0,
+        target_price: r.targetPrice || 0,
         listing_account: state.sourceType || '',
         memo: (reason || '相談依頼') + (r.explanation ? '\n' + r.explanation : ''),
         judged_by: staff.name,

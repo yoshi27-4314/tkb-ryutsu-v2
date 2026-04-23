@@ -690,11 +690,11 @@ async function handleSalesOcr(item) {
 
 function renderSalesEditForm(item, prefill = {}) {
   const staffName = getCurrentStaff()?.name || '';
-  const soldPrice = prefill.sold_price ?? item.sold_price ?? 0;
-  const platformFee = prefill.platform_fee ?? item.platform_fee ?? 0;
-  const shippingCost = item.shipping_cost ?? 0;
-  const packingCost = item.packing_cost ?? 0;
-  const acquisitionCost = item.acquisition_cost ?? 0;
+  const soldPrice = prefill.sold_price || item.sold_price || 0;
+  const platformFee = prefill.platform_fee || item.platform_fee || 0;
+  const shippingCost = item.shipping_cost || 0;
+  const packingCost = item.packing_cost || 0;
+  const acquisitionCost = item.acquisition_cost || 0;
 
   _container.innerHTML = `
     <div style="padding:12px;padding-bottom:100px;">

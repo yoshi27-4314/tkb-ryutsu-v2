@@ -63,7 +63,7 @@ export async function getItems(filters = {}) {
 
   // ソート
   const orderBy = filters.orderBy || 'priority_score';
-  const ascending = filters.ascending ?? false;
+  const ascending = filters.ascending !== undefined ? filters.ascending : false;
   query = query.order(orderBy, { ascending, nullsFirst: false });
 
   if (filters.limit) query = query.limit(filters.limit);
