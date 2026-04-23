@@ -62,6 +62,9 @@ function resetState() {
     startTime: null,
     consultReason: '',
     commissionRate: null,
+    bulkItems: [],
+    bulkPhoto: null,
+    bulkRegisterResult: null,
   };
 }
 
@@ -109,13 +112,15 @@ function render() {
   }
 
   switch (state.step) {
-    case 'source':   renderSourceSelect();  break;
-    case 'capture':  renderCapture();       break;
-    case 'result':   renderResult();        break;
-    case 'photo':    renderPhotoStep();     break;
-    case 'storage':  renderStorageStep();   break;
-    case 'done':     renderDone();          break;
-    default:         renderSourceSelect();
+    case 'source':      renderSourceSelect();  break;
+    case 'capture':     renderCapture();       break;
+    case 'result':      renderResult();        break;
+    case 'photo':       renderPhotoStep();     break;
+    case 'storage':     renderStorageStep();   break;
+    case 'done':        renderDone();          break;
+    case 'bulk_import': renderBulkImport();    break;
+    case 'done_bulk':   renderDoneBulk();      break;
+    default:            renderSourceSelect();
   }
 }
 
@@ -140,6 +145,11 @@ function renderSourceSelect() {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         ${btns}
       </div>
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #333;">
+        <button id="btnBulkWatanabe" style="width:100%;padding:14px;border-radius:12px;border:1px solid #C5A258;background:transparent;color:#C5A258;font-size:14px;cursor:pointer;">
+          📋 渡辺質店 一括登録（シート読み取り）
+        </button>
+      </div>
       ${renderTodayCount()}
     </div>
   `;
@@ -153,6 +163,17 @@ function renderSourceSelect() {
     });
     addTouchFeedback(btn);
   });
+
+  const bulkBtn = containerRef.querySelector('#btnBulkWatanabe');
+  if (bulkBtn) {
+    bulkBtn.addEventListener('click', () => {
+      state.sourceType = 'watanabe';
+      state.sourceCategory = 'itaku';
+      state.step = 'bulk_import';
+      render();
+    });
+    addTouchFeedback(bulkBtn);
+  }
 }
 
 function renderTodayCount() {
@@ -1110,6 +1131,384 @@ function renderDone() {
   addTouchFeedback(containerRef.querySelector('#doneAddPhoto'));
 
   // 今日の実績を非同期更新
+  loadTodayCount();
+}
+
+// ── 渡辺質店 一括登録 ────────────────────────────
+
+function renderBulkImport() {
+  const items = state.bulkItems;
+  const hasItems = items.length > 0;
+  const includedCount = items.filter(i => i.included).length;
+
+  containerRef.innerHTML = `
+    <div style="padding:16px 16px 100px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <button id="bulkBack" style="background:none;border:none;color:#C5A258;font-size:22px;cursor:pointer;padding:4px 8px;">←</button>
+        <div>
+          <h2 style="color:#C5A258;font-size:18px;margin:0;">渡辺質店 一括登録</h2>
+          <p style="color:#888;font-size:12px;margin:0;">手書きシートから一括読み取り</p>
+        </div>
+      </div>
+
+      ${!hasItems ? `
+      <!-- 撮影前 -->
+      <div id="bulkCaptureArea" style="background:#1a1a2e;border:2px dashed #C5A258;border-radius:16px;
+           padding:48px 20px;text-align:center;cursor:pointer;margin-bottom:16px;">
+        ${state.bulkPhoto
+          ? `<img src="${state.bulkPhoto}" style="max-width:100%;max-height:300px;border-radius:8px;margin-bottom:12px;">
+             <p style="color:#aaa;font-size:13px;">タップして撮り直し</p>`
+          : `<div style="font-size:48px;margin-bottom:12px;">📋</div>
+             <p style="color:#C5A258;font-size:16px;font-weight:bold;">手書きシートを撮影</p>
+             <p style="color:#666;font-size:13px;">渡辺質店の商品リストシートを<br>全体が映るように撮ってください</p>`
+        }
+      </div>
+      ${state.bulkPhoto ? `
+      <button id="bulkOcrBtn" style="width:100%;padding:16px;border-radius:12px;font-size:16px;font-weight:bold;
+             border:none;cursor:pointer;background:#C5A258;color:#000;">
+        シートを解析する
+      </button>
+      ` : ''}
+      ` : `
+      <!-- 解析結果テーブル -->
+      ${state.bulkPhoto ? `
+      <div style="margin-bottom:12px;">
+        <img src="${state.bulkPhoto}" style="width:80px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #333;">
+      </div>
+      ` : ''}
+      <div style="background:#1a1a2e;border-radius:12px;padding:12px;margin-bottom:12px;">
+        <p style="color:#888;font-size:12px;margin-bottom:4px;">読み取り結果</p>
+        <p style="color:#C5A258;font-size:16px;font-weight:bold;margin:0;">${items.length}件 検出（${includedCount}件 選択中）</p>
+      </div>
+
+      <div style="overflow-x:auto;margin-bottom:16px;">
+        <table style="width:100%;border-collapse:collapse;min-width:500px;">
+          <thead>
+            <tr style="border-bottom:1px solid #333;">
+              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:36px;">✓</th>
+              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:left;">品番</th>
+              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:left;">商品名</th>
+              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:right;width:80px;">希望価格</th>
+              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:70px;">手数料</th>
+              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:36px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items.map((item, i) => `
+            <tr data-idx="${i}" style="border-bottom:1px solid #222;${!item.included ? 'opacity:0.4;' : ''}">
+              <td style="padding:8px 4px;text-align:center;">
+                <input type="checkbox" class="bulk-check" data-idx="${i}" ${item.included ? 'checked' : ''}
+                  style="width:18px;height:18px;accent-color:#C5A258;">
+              </td>
+              <td style="padding:8px 4px;color:#aaa;font-size:13px;">${escapeHtml(item.number)}</td>
+              <td style="padding:8px 4px;">
+                <input type="text" class="bulk-name" data-idx="${i}" value="${escapeHtml(item.name)}"
+                  style="background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;
+                         padding:6px 8px;font-size:13px;width:100%;box-sizing:border-box;outline:none;">
+              </td>
+              <td style="padding:8px 4px;">
+                <input type="number" class="bulk-price" data-idx="${i}" value="${item.price}"
+                  style="background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;
+                         padding:6px 8px;font-size:13px;width:70px;text-align:right;outline:none;">
+              </td>
+              <td style="padding:8px 4px;text-align:center;">
+                <select class="bulk-rate" data-idx="${i}"
+                  style="background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;
+                         padding:6px 4px;font-size:12px;outline:none;">
+                  ${[20,30,40,50].map(r => `<option value="${r}" ${item.commissionRate === r ? 'selected' : ''}>${r}%</option>`).join('')}
+                </select>
+              </td>
+              <td style="padding:8px 4px;text-align:center;">
+                <button class="bulk-del" data-idx="${i}" style="background:none;border:none;color:#f44;font-size:16px;cursor:pointer;padding:2px 6px;">✕</button>
+              </td>
+            </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-bottom:8px;">
+        <button id="bulkAddMore" style="flex:1;padding:12px;border-radius:12px;font-size:13px;
+               border:1px solid #C5A258;background:transparent;color:#C5A258;cursor:pointer;">
+          📷 追加撮影（続きを読み取り）
+        </button>
+        <button id="bulkRescan" style="flex:1;padding:12px;border-radius:12px;font-size:13px;
+               border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;">
+          🔄 最初から
+        </button>
+      </div>
+      <button id="bulkRegister" style="width:100%;padding:14px;border-radius:12px;font-size:16px;font-weight:bold;
+             border:none;cursor:pointer;background:#C5A258;color:#000;margin-bottom:12px;">
+        全${includedCount}件を登録
+      </button>
+      `}
+    </div>
+  `;
+
+  // Events
+  containerRef.querySelector('#bulkBack')?.addEventListener('click', () => {
+    state.step = 'source';
+    state.bulkItems = [];
+    state.bulkPhoto = null;
+    render();
+  });
+
+  const captureArea = containerRef.querySelector('#bulkCaptureArea');
+  if (captureArea) {
+    captureArea.addEventListener('click', async () => {
+      try {
+        const file = await capturePhoto();
+        if (!file) return;
+        showToast('画像を処理中...');
+        const base64 = await fileToBase64(file);
+        state.bulkPhoto = await resizeImage(base64, 1600);
+        render();
+      } catch (e) {
+        console.error('撮影エラー:', e);
+        showToast('撮影に失敗しました');
+      }
+    });
+    addTouchFeedback(captureArea);
+  }
+
+  containerRef.querySelector('#bulkOcrBtn')?.addEventListener('click', handleBulkOcr);
+
+  // Table events
+  containerRef.querySelectorAll('.bulk-check').forEach(el => {
+    el.addEventListener('change', (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.bulkItems[idx].included = e.target.checked;
+      render();
+    });
+  });
+  containerRef.querySelectorAll('.bulk-name').forEach(el => {
+    el.addEventListener('input', (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.bulkItems[idx].name = e.target.value;
+    });
+  });
+  containerRef.querySelectorAll('.bulk-price').forEach(el => {
+    el.addEventListener('input', (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.bulkItems[idx].price = parseInt(e.target.value) || 0;
+    });
+  });
+  containerRef.querySelectorAll('.bulk-rate').forEach(el => {
+    el.addEventListener('change', (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.bulkItems[idx].commissionRate = parseInt(e.target.value);
+    });
+  });
+  containerRef.querySelectorAll('.bulk-del').forEach(el => {
+    el.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.bulkItems.splice(idx, 1);
+      render();
+    });
+  });
+
+  containerRef.querySelector('#bulkRescan')?.addEventListener('click', () => {
+    state.bulkItems = [];
+    state.bulkPhoto = null;
+    render();
+  });
+
+  // 追加撮影（続きを読み取り）- 既存リストに追加、重複は品番で除外
+  containerRef.querySelector('#bulkAddMore')?.addEventListener('click', async () => {
+    try {
+      const file = await capturePhoto();
+      if (!file) return;
+      showToast('追加シートを解析中...');
+      const base64 = await fileToBase64(file);
+      state.bulkPhoto = await resizeImage(base64, 1600);
+      await handleBulkOcr();
+    } catch (e) {
+      showToast('追加読み取りに失敗しました');
+    }
+  });
+
+  containerRef.querySelector('#bulkRegister')?.addEventListener('click', handleBulkRegister);
+  addTouchFeedback(containerRef.querySelector('#bulkRegister'));
+}
+
+async function handleBulkOcr() {
+  if (!state.bulkPhoto) return;
+
+  showLoading(containerRef, '手書きシートを解析中...');
+
+  try {
+    const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
+        'apikey': CONFIG.AWAI_KEY,
+      },
+      body: JSON.stringify({
+        image: state.bulkPhoto,
+        step: 'receipt',
+        context: {
+          task: 'この手書きの商品リストシートから全ての商品情報を読み取り、JSON配列で返してください。各商品は: {"number":"品番","name":"商品名","condition":"状態備考","price":希望価格数値} の形式で。価格が読み取れない場合は0にしてください。全行を漏れなく読み取ってください。',
+        },
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text().catch(() => '');
+      throw new Error(`解析エラー (${res.status}): ${errText}`);
+    }
+
+    const result = await res.json();
+    let items = [];
+    const data = result.judgment || result.raw || result;
+    if (typeof data === 'string') {
+      const match = data.match(/\[[\s\S]*\]/);
+      if (match) items = JSON.parse(match[0]);
+    } else if (Array.isArray(data)) {
+      items = data;
+    } else if (data.items) {
+      items = data.items;
+    }
+
+    if (items.length === 0) {
+      showToast('商品を読み取れませんでした。撮り直してください');
+      render();
+      return;
+    }
+
+    // 既存の品番と重複チェック（複数回撮影対応）
+    const existingNumbers = new Set(state.bulkItems.map(i => i.number));
+    const newItems = items.map((item, i) => ({
+      included: true,
+      number: item.number || item.品番 || `W${i + 1}`,
+      name: item.name || item.商品名 || '',
+      condition: item.condition || item.状態 || '',
+      price: parseInt(item.price || item.希望価格 || 0),
+      commissionRate: 30,
+    }));
+
+    let added = 0;
+    let skipped = 0;
+    for (const item of newItems) {
+      if (existingNumbers.has(item.number)) {
+        skipped++;
+      } else {
+        state.bulkItems.push(item);
+        existingNumbers.add(item.number);
+        added++;
+      }
+    }
+
+    showToast(`${added}件追加${skipped > 0 ? `（${skipped}件は重複のためスキップ）` : ''}。合計${state.bulkItems.length}件`);
+    render();
+  } catch (e) {
+    console.error('一括OCRエラー:', e);
+    showToast(e.message || 'シートの解析に失敗しました');
+    render();
+  }
+}
+
+async function handleBulkRegister() {
+  const staff = getCurrentStaff();
+  if (!staff) return;
+  const items = state.bulkItems.filter(i => i.included);
+  if (items.length === 0) {
+    showToast('登録する商品がありません');
+    return;
+  }
+
+  showLoading(containerRef, `${items.length}件を登録中...`);
+
+  let success = 0;
+  let errors = 0;
+
+  for (const item of items) {
+    try {
+      const mgmtNum = await db.generateMgmtNum();
+      await db.createItem({
+        mgmt_num: mgmtNum,
+        product_name: item.name,
+        condition: item.condition,
+        channel_name: '渡辺質店',
+        start_price: item.price,
+        target_price: item.price,
+        estimated_price_max: item.price,
+        status: '出品待ち',
+        judged_by: staff.name,
+        judged_at: new Date().toISOString(),
+        staff_mark: CONFIG.STAFF_MARKS[staff.name] || '',
+        commission_rate: item.commissionRate,
+        commission_type: 'per_item',
+        consignment_partner: '渡辺質店',
+        memo: `渡辺品番: ${item.number}`,
+        source: 'bulk_import',
+      });
+      success++;
+    } catch (e) {
+      console.error(`Bulk register error for ${item.number}:`, e);
+      errors++;
+    }
+  }
+
+  state.bulkRegisterResult = { success, errors, total: items.length };
+  showToast(`${success}件登録完了${errors > 0 ? `（${errors}件エラー）` : ''}`);
+  state.step = 'done_bulk';
+  render();
+}
+
+function renderDoneBulk() {
+  const result = state.bulkRegisterResult || { success: 0, errors: 0, total: 0 };
+
+  containerRef.innerHTML = `
+    <div style="padding:16px 16px 100px;">
+      <div style="text-align:center;padding:32px 0 24px;">
+        <div style="font-size:48px;margin-bottom:12px;">${result.errors > 0 ? '⚠️' : '✅'}</div>
+        <h2 style="color:#C5A258;font-size:20px;margin-bottom:8px;">一括登録完了</h2>
+        <p style="color:#e0e0e0;font-size:18px;font-weight:bold;margin-bottom:4px;">
+          ${result.success} / ${result.total} 件 登録成功
+        </p>
+        ${result.errors > 0 ? `
+        <p style="color:#f44336;font-size:14px;">${result.errors}件 エラーあり</p>
+        ` : ''}
+      </div>
+
+      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:20px;">
+        <table style="width:100%;border-collapse:collapse;">
+          ${resultRow('仕入先', '渡辺質店')}
+          ${resultRow('登録方法', '一括登録（シート読み取り）')}
+          ${resultRow('成功', `${result.success}件`)}
+          ${result.errors > 0 ? resultRow('エラー', `${result.errors}件`) : ''}
+        </table>
+      </div>
+
+      <button id="doneBulkHome"
+        style="width:100%;padding:16px;border-radius:12px;font-size:16px;font-weight:bold;
+               border:none;cursor:pointer;background:#C5A258;color:#000;margin-bottom:10px;">
+        ホームに戻る
+      </button>
+      <button id="doneBulkContinue"
+        style="width:100%;padding:14px;border-radius:12px;font-size:14px;
+               border:1px solid #C5A258;background:transparent;color:#C5A258;cursor:pointer;">
+        続けて一括登録
+      </button>
+    </div>
+  `;
+
+  containerRef.querySelector('#doneBulkHome').addEventListener('click', () => {
+    state = resetState();
+    render();
+  });
+  containerRef.querySelector('#doneBulkContinue').addEventListener('click', () => {
+    state.bulkItems = [];
+    state.bulkPhoto = null;
+    state.bulkRegisterResult = null;
+    state.step = 'bulk_import';
+    render();
+  });
+
+  addTouchFeedback(containerRef.querySelector('#doneBulkHome'));
+  addTouchFeedback(containerRef.querySelector('#doneBulkContinue'));
+
   loadTodayCount();
 }
 
