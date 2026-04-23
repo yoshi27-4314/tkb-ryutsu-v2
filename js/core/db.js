@@ -294,6 +294,37 @@ export async function getStatusCounts() {
   return counts;
 }
 
+// --- 滞留商品取得 ---
+export async function getStaleItems() {
+  if (!db) return [];
+  const now = new Date();
+  const { data } = await db.from('items')
+    .select('mgmt_num,product_name,status,judged_at,listed_at,sold_at,packed_at,created_at')
+    .in('status', ['出品待ち', '出品中', '梱包待ち', '梱包完了', '入金待ち'])
+    .order('judged_at', { ascending: true })
+    .limit(200);
+
+  if (!data) return [];
+
+  const stale = [];
+  for (const item of data) {
+    const refDate = item.listed_at || item.judged_at || item.created_at;
+    if (!refDate) continue;
+    const days = Math.floor((now - new Date(refDate)) / (1000 * 60 * 60 * 24));
+
+    let threshold = 999;
+    if (item.status === '出品待ち') threshold = 7;
+    else if (item.status === '出品中') threshold = 30;
+    else if (item.status === '梱包待ち' || item.status === '梱包完了') threshold = 3;
+    else if (item.status === '入金待ち') threshold = 5;
+
+    if (days >= threshold) {
+      stale.push({ ...item, staleDays: days, threshold });
+    }
+  }
+  return stale.sort((a, b) => b.staleDays - a.staleDays).slice(0, 20);
+}
+
 // --- 今日の実績 ---
 export async function getTodayStats() {
   if (!db) return { listed: 0, judged: 0, shipped: 0, packed: 0 };

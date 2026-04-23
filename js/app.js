@@ -4,7 +4,7 @@
  *   入荷(intake) / 販売(sales) / 取引(trade) / 業務(ops)
  */
 import { CONFIG } from './core/config.js';
-import { initDB, getDB, subscribe, getStatusCounts, getTodayStats, getItems, cleanStaleLocks } from './core/db.js';
+import { initDB, getDB, subscribe, getStatusCounts, getTodayStats, getItems, cleanStaleLocks, getStaleItems } from './core/db.js';
 import { getCurrentStaff, showLoginScreen } from './core/auth.js';
 import { registerRoute, navigate } from './core/router.js';
 import { showToast, showLoading, statusBadge, formatPrice, emptyState, escapeHtml } from './core/ui.js';
@@ -138,9 +138,10 @@ async function renderHome() {
   const content = getContentEl();
   showLoading(content, 'データを読み込み中...');
 
-  const [counts, todayStats] = await Promise.all([
+  const [counts, todayStats, staleItems] = await Promise.all([
     getStatusCounts(),
     getTodayStats(),
+    getStaleItems(),
   ]);
 
   const staff = getCurrentStaff();
@@ -169,6 +170,25 @@ async function renderHome() {
           ${bottlenecks.map(b => `
             <div style="background:${b.level === 'danger' ? '#2a0a0a' : '#2a1a0a'};border-left:3px solid ${b.level === 'danger' ? 'var(--danger)' : 'var(--warning)'};padding:10px 12px;margin:4px 0;border-radius:0 8px 8px 0;font-size:13px;color:${b.level === 'danger' ? '#f88' : '#fda'};">
               ${b.level === 'danger' ? '🚨' : '⚠️'} ${b.msg}
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+
+      <!-- 滞留アラート -->
+      ${staleItems.length > 0 ? `
+        <div class="section-title" style="color:var(--danger);">滞留アラート（${staleItems.length}件）</div>
+        <div style="padding:0 16px;">
+          ${staleItems.slice(0, 5).map(item => `
+            <div style="background:#1a1a2e;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <span style="color:#C5A258;font-size:12px;">${item.mgmt_num}</span>
+                <div style="font-size:13px;color:#e0e0e0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${item.product_name}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="color:#f44336;font-size:16px;font-weight:bold;">${item.staleDays}日</div>
+                <div style="font-size:10px;color:#888;">${item.status}</div>
+              </div>
             </div>
           `).join('')}
         </div>

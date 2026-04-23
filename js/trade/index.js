@@ -9,6 +9,7 @@ import {
   showToast, showLoading, showConfirm, capturePhoto,
   fileToBase64, resizeImage, escapeHtml, statusBadge,
   formatPrice, formatDate, formatDuration, emptyState,
+  renderLeadTimes,
 } from '../core/ui.js';
 
 // ---------------------------------------------------------------------------
@@ -338,6 +339,9 @@ function renderDetail(item) {
           ${detailRow('完了日', formatDate(item.completed_at))}
         </div>
       </div>
+
+      <!-- リードタイム -->
+      ${renderLeadTimes(item)}
 
       <!-- 工程履歴 -->
       <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #262640;">

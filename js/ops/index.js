@@ -127,6 +127,8 @@ export function renderOps(container, params = {}) {
     { id: 'attendance', label: '🕐 勤怠' },
     { id: 'chat', label: '💬 チャット' },
     { id: 'kpi', label: '📊 KPI' },
+    { id: 'voice', label: '🗣 声' },
+    { id: 'knowledge', label: '📚 知識' },
     { id: 'mypage', label: '👤 マイページ' },
   ];
 
@@ -151,6 +153,8 @@ export function renderOps(container, params = {}) {
     case 'attendance': renderAttendance(content, params, staff); break;
     case 'chat': renderChat(content, params, staff); break;
     case 'kpi': renderKPI(content, params, staff); break;
+    case 'voice': renderVoice(content, params, staff); break;
+    case 'knowledge': renderKnowledge(content, params, staff); break;
     case 'mypage': renderMyPage(content, params, staff); break;
     default: renderExpense(content, params, staff);
   }
@@ -1317,6 +1321,249 @@ async function renderStaffTimeline(container) {
       `, 'padding:10px 12px;');
     }).join('')}
   </div>`;
+}
+
+// ============================================================
+// 声ポイント制度モジュール
+// ============================================================
+const VOICE_STATUS_LABELS = {
+  '投稿': { color: '#2196f3', bg: '#2196f322' },
+  '受理': { color: '#ff9800', bg: '#ff980022' },
+  '採用': { color: '#4caf50', bg: '#4caf5022' },
+  '実装': { color: '#9c27b0', bg: '#9c27b022' },
+  '優秀': { color: '#C5A258', bg: '#C5A25822' },
+};
+
+const VOICE_POINTS = { '投稿': 1, '受理': 2, '採用': 5, '実装': 10, '優秀': 20 };
+
+async function renderVoice(container, params, staff) {
+  showLoading(container);
+
+  const dbClient = db.getDB();
+  let voiceItems = [];
+  let totalPoints = 0;
+
+  if (dbClient) {
+    const { data } = await dbClient.from('voice_points')
+      .select('*')
+      .eq('staff_name', staff.name)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    voiceItems = data || [];
+    totalPoints = voiceItems.reduce((sum, v) => sum + (VOICE_POINTS[v.status] || 0), 0);
+  }
+
+  container.innerHTML = `
+    <!-- ポイント合計 -->
+    ${card(`
+      <div style="text-align:center;">
+        <div style="color:${TEXT_SECONDARY};font-size:12px;">あなたの声ポイント</div>
+        <div style="color:${GOLD};font-size:36px;font-weight:bold;margin:8px 0;">${totalPoints}<span style="font-size:14px;color:${TEXT_SECONDARY};margin-left:4px;">pt</span></div>
+        <div style="color:${TEXT_MUTED};font-size:11px;">${voiceItems.length}件の提案</div>
+      </div>
+    `)}
+
+    <!-- 新規提案フォーム -->
+    ${card(`
+      ${sectionTitle('新しい提案を投稿')}
+      <textarea id="voiceContent" rows="3" placeholder="改善提案、気づいたこと、アイデアなどを自由に書いてください" style="width:100%;padding:10px 12px;border-radius:8px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+      <div style="margin-top:12px;">
+        ${btn('提案を投稿する', 'btnSubmitVoice')}
+      </div>
+    `)}
+
+    <!-- 過去の提案リスト -->
+    ${sectionTitle('投稿履歴')}
+    <div id="voiceList">
+      ${voiceItems.length === 0
+        ? emptyState('🗣', 'まだ提案がありません。最初の声を上げましょう！')
+        : voiceItems.map(v => {
+          const st = VOICE_STATUS_LABELS[v.status] || { color: TEXT_MUTED, bg: '#33333333' };
+          const pts = VOICE_POINTS[v.status] || 0;
+          return card(`
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div style="flex:1;min-width:0;">
+                <div style="color:${TEXT_PRIMARY};font-size:14px;line-height:1.5;word-break:break-word;">${escapeHtml(v.content || '')}</div>
+                <div style="color:${TEXT_MUTED};font-size:11px;margin-top:6px;">${formatDateTime(v.created_at)}</div>
+              </div>
+              <div style="text-align:right;margin-left:12px;flex-shrink:0;">
+                <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold;background:${st.bg};color:${st.color};">${escapeHtml(v.status || '投稿')}</span>
+                <div style="color:${GOLD};font-size:12px;font-weight:bold;margin-top:4px;">+${pts}pt</div>
+              </div>
+            </div>
+          `);
+        }).join('')
+      }
+    </div>
+  `;
+
+  // 投稿ボタン
+  container.querySelector('#btnSubmitVoice').addEventListener('click', async () => {
+    const content = container.querySelector('#voiceContent').value.trim();
+    if (!content) {
+      showToast('提案内容を入力してください');
+      return;
+    }
+
+    if (!dbClient) {
+      showToast('データベースに接続できません');
+      return;
+    }
+
+    const { data, error } = await dbClient.from('voice_points').insert({
+      staff_name: staff.name,
+      content,
+      status: '投稿',
+    }).select().single();
+
+    if (error) {
+      console.error('Voice submit error:', error);
+      showToast('投稿に失敗しました');
+      return;
+    }
+
+    showToast('提案を投稿しました！ +1pt');
+    renderVoice(container, params, staff);
+  });
+}
+
+// ============================================================
+// 知識蓄積モジュール
+// ============================================================
+const KNOWLEDGE_CATEGORIES = ['相場', '業者', 'コツ', 'メモ'];
+
+async function renderKnowledge(container, params, staff) {
+  showLoading(container);
+
+  const dbClient = db.getDB();
+  let knowledgeItems = [];
+  const selectedCategory = params.knowledgeCategory || '';
+  const searchQuery = params.knowledgeSearch || '';
+
+  if (dbClient) {
+    let query = dbClient.from('knowledge')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(100);
+
+    if (selectedCategory) {
+      query = query.eq('category', selectedCategory);
+    }
+    if (searchQuery) {
+      query = query.or(`title.ilike.%${searchQuery}%,content.ilike.%${searchQuery}%`);
+    }
+
+    const { data } = await query;
+    knowledgeItems = data || [];
+  }
+
+  const categoryColors = { '相場': '#2196f3', '業者': '#ff9800', 'コツ': '#4caf50', 'メモ': '#9c27b0' };
+
+  container.innerHTML = `
+    <!-- 検索バー -->
+    <div style="position:relative;margin-bottom:12px;">
+      <input id="knowledgeSearch" type="search" placeholder="知識を検索..."
+        value="${escapeHtml(searchQuery)}"
+        style="width:100%;box-sizing:border-box;padding:10px 12px 10px 36px;border-radius:10px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:14px;outline:none;" />
+      <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#666;font-size:16px;">🔍</span>
+    </div>
+
+    <!-- カテゴリフィルタ -->
+    <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;">
+      <button data-kcat="" style="padding:6px 14px;border-radius:20px;border:none;font-size:12px;cursor:pointer;white-space:nowrap;${!selectedCategory ? `background:${GOLD};color:#000;font-weight:bold;` : 'background:#222;color:#888;'}">全て</button>
+      ${KNOWLEDGE_CATEGORIES.map(cat => `
+        <button data-kcat="${cat}" style="padding:6px 14px;border-radius:20px;border:none;font-size:12px;cursor:pointer;white-space:nowrap;${selectedCategory === cat ? `background:${categoryColors[cat] || GOLD};color:#000;font-weight:bold;` : `background:#222;color:${categoryColors[cat] || '#888'};`}">${cat}</button>
+      `).join('')}
+    </div>
+
+    <!-- 新規登録フォーム -->
+    <details id="knowledgeForm" style="margin-bottom:16px;">
+      <summary style="color:${GOLD};font-size:14px;font-weight:bold;cursor:pointer;padding:8px 0;">+ 新しい知識を追加</summary>
+      ${card(`
+        ${label('カテゴリ')}
+        ${selectBox('kNewCategory', KNOWLEDGE_CATEGORIES, '', '選択してください')}
+
+        ${label('タイトル')}
+        ${inputField('kNewTitle', 'text', '例: ルイヴィトン モノグラム 相場目安')}
+
+        ${label('内容')}
+        <textarea id="kNewContent" rows="4" placeholder="具体的な内容を記載" style="width:100%;padding:10px 12px;border-radius:8px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+
+        <div style="margin-top:12px;">
+          ${btn('保存する', 'btnSaveKnowledge')}
+        </div>
+      `)}
+    </details>
+
+    <!-- 知識リスト -->
+    ${sectionTitle(`知識ベース（${knowledgeItems.length}件）`)}
+    <div id="knowledgeList">
+      ${knowledgeItems.length === 0
+        ? emptyState('📚', selectedCategory || searchQuery ? 'この条件に一致する知識はありません' : 'まだ知識が登録されていません。チームの知恵を蓄積しましょう！')
+        : knowledgeItems.map(k => {
+          const catColor = categoryColors[k.category] || TEXT_MUTED;
+          return card(`
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold;background:${catColor}22;color:${catColor};">${escapeHtml(k.category || 'メモ')}</span>
+                <span style="color:${TEXT_MUTED};font-size:11px;">${formatDate(k.created_at)} ${escapeHtml(k.created_by || '')}</span>
+              </div>
+              <div style="color:${TEXT_PRIMARY};font-size:15px;font-weight:bold;margin-bottom:4px;">${escapeHtml(k.title || '')}</div>
+              <div style="color:${TEXT_SECONDARY};font-size:13px;line-height:1.6;white-space:pre-wrap;word-break:break-word;">${escapeHtml(k.content || '')}</div>
+            </div>
+          `);
+        }).join('')
+      }
+    </div>
+  `;
+
+  // カテゴリフィルタ
+  container.querySelectorAll('[data-kcat]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      renderKnowledge(container, { ...params, knowledgeCategory: btn.dataset.kcat, knowledgeSearch: searchQuery }, staff);
+    });
+  });
+
+  // 検索
+  let searchDebounce = null;
+  container.querySelector('#knowledgeSearch').addEventListener('input', (e) => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => {
+      renderKnowledge(container, { ...params, knowledgeSearch: e.target.value.trim(), knowledgeCategory: selectedCategory }, staff);
+    }, 400);
+  });
+
+  // 保存
+  container.querySelector('#btnSaveKnowledge').addEventListener('click', async () => {
+    const category = container.querySelector('#kNewCategory').value;
+    const title = container.querySelector('#kNewTitle').value.trim();
+    const content = container.querySelector('#kNewContent').value.trim();
+
+    if (!category) { showToast('カテゴリを選択してください'); return; }
+    if (!title) { showToast('タイトルを入力してください'); return; }
+    if (!content) { showToast('内容を入力してください'); return; }
+
+    if (!dbClient) {
+      showToast('データベースに接続できません');
+      return;
+    }
+
+    const { data, error } = await dbClient.from('knowledge').insert({
+      category,
+      title,
+      content,
+      created_by: staff.name,
+    }).select().single();
+
+    if (error) {
+      console.error('Knowledge save error:', error);
+      showToast('保存に失敗しました');
+      return;
+    }
+
+    showToast('知識を保存しました');
+    renderKnowledge(container, { ...params, knowledgeCategory: selectedCategory, knowledgeSearch: searchQuery }, staff);
+  });
 }
 
 // ============================================================

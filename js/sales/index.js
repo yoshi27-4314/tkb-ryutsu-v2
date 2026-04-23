@@ -5,7 +5,7 @@
 import { CONFIG } from '../core/config.js';
 import * as db from '../core/db.js';
 import { getCurrentStaff } from '../core/auth.js';
-import { showToast, showLoading, showConfirm, escapeHtml, statusBadge, formatPrice, formatDuration, emptyState } from '../core/ui.js';
+import { showToast, showLoading, showConfirm, capturePhoto, fileToBase64, resizeImage, escapeHtml, statusBadge, formatPrice, formatDuration, emptyState } from '../core/ui.js';
 import { navigate } from '../core/router.js';
 
 // ============================================================
@@ -21,6 +21,7 @@ let workingItem = null;         // 出品作業中の商品
 let generatedTitle = '';
 let generatedDesc = '';
 let unsubscribe = null;         // リアルタイム購読解除
+let sessionPhotos = [];         // セッション中に追加した写真（base64）
 
 // タブ → ステータスフィルタ
 const TAB_FILTERS = {
@@ -62,6 +63,7 @@ export function renderSales(container, params = {}) {
 // ============================================================
 function renderListView(container) {
   workingItem = null;
+  sessionPhotos = [];
   stopTimer();
 
   container.innerHTML = `
@@ -280,18 +282,29 @@ async function openListingWork(container, mgmtNum) {
         </div>
       </div>
 
-      <!-- 写真 -->
+      <!-- 写真管理 -->
       <div style="margin-bottom:16px;">
-        <h3 style="color:#e0e0e0;font-size:13px;margin-bottom:8px;">📷 商品写真</h3>
-        <div id="photoGallery" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <h3 style="color:#e0e0e0;font-size:13px;margin:0;">📷 商品写真</h3>
+          <div style="display:flex;gap:6px;">
+            ${item.drive_url ? `<a href="${escapeHtml(item.drive_url)}" target="_blank" rel="noopener" style="padding:4px 10px;border-radius:6px;border:1px solid #333;background:transparent;color:#888;font-size:11px;text-decoration:none;">Driveフォルダ</a>` : ''}
+            <button id="addPhotoBtn" style="padding:4px 10px;border-radius:6px;border:1px solid #C5A258;background:transparent;color:#C5A258;font-size:11px;cursor:pointer;">+ 写真追加</button>
+          </div>
+        </div>
+        <div id="photoGallery" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;flex-wrap:wrap;">
           ${photos.length > 0
             ? photos.map((url, i) => `
-              <img src="${escapeHtml(url)}" alt="写真${i + 1}"
-                style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #333;flex-shrink:0;" />
+              <div style="position:relative;flex-shrink:0;" data-photo-idx="${i}" data-photo-type="existing">
+                <img src="${escapeHtml(url)}" alt="写真${i + 1}"
+                  style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #333;" />
+                <div style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.6);color:#888;font-size:9px;padding:1px 4px;border-radius:4px;">${i + 1}</div>
+              </div>
             `).join('')
-            : '<div style="padding:20px;color:#666;font-size:13px;">写真がありません</div>'
+            : ''
           }
         </div>
+        <div id="sessionPhotoGallery" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;flex-wrap:wrap;margin-top:4px;"></div>
+        ${photos.length === 0 && sessionPhotos.length === 0 ? '<div id="noPhotoMsg" style="padding:10px;color:#666;font-size:13px;text-align:center;">写真がありません。「+ 写真追加」で撮影してください</div>' : ''}
       </div>
 
       <!-- AI生成タイトル -->
@@ -429,6 +442,76 @@ async function openListingWork(container, mgmtNum) {
       titleError.style.display = 'none';
     }
   });
+
+  // 写真追加
+  container.querySelector('#addPhotoBtn').addEventListener('click', async () => {
+    try {
+      const file = await capturePhoto();
+      if (!file) return;
+      showToast('写真を処理中...');
+      const base64 = await fileToBase64(file);
+      const resized = await resizeImage(base64, 1200);
+      sessionPhotos.push(resized);
+      refreshSessionPhotos(container);
+
+      // Driveにアップロード試行
+      try {
+        const resp = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-drive`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
+          },
+          body: JSON.stringify({
+            mgmtNum: item.mgmt_num,
+            image: resized,
+            index: (photos.length + sessionPhotos.length),
+          }),
+        });
+        if (resp.ok) {
+          showToast('写真を追加しました（Drive保存済み）');
+        } else {
+          showToast('写真を追加しました（ローカルのみ）');
+        }
+      } catch {
+        showToast('写真を追加しました（ローカルのみ）');
+      }
+    } catch (err) {
+      console.error('Photo capture error:', err);
+      showToast('写真の追加に失敗しました');
+    }
+  });
+
+  // セッション写真の描画
+  function refreshSessionPhotos(container) {
+    const gallery = container.querySelector('#sessionPhotoGallery');
+    if (!gallery) return;
+    const noMsg = container.querySelector('#noPhotoMsg');
+    if (noMsg) noMsg.remove();
+    gallery.innerHTML = sessionPhotos.map((b64, i) => `
+      <div style="position:relative;flex-shrink:0;" data-session-idx="${i}">
+        <img src="${b64}" alt="追加写真${i + 1}"
+          style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #C5A258;" />
+        <button data-del-session="${i}" style="position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(244,67,54,0.9);color:#fff;border:none;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;">x</button>
+        <div style="position:absolute;top:2px;left:2px;background:rgba(197,162,88,0.8);color:#000;font-size:9px;padding:1px 4px;border-radius:4px;font-weight:bold;">新${i + 1}</div>
+      </div>
+    `).join('');
+
+    gallery.querySelectorAll('[data-del-session]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(btn.dataset.delSession);
+        sessionPhotos.splice(idx, 1);
+        refreshSessionPhotos(container);
+        showToast('写真を削除しました');
+      });
+    });
+  }
+
+  // 初期描画
+  if (sessionPhotos.length > 0) {
+    refreshSessionPhotos(container);
+  }
 
   // AI生成タイトル
   container.querySelector('#aiTitleBtn').addEventListener('click', async () => {

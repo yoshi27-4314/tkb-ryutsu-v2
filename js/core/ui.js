@@ -167,3 +167,28 @@ export function resizeImage(base64, maxWidth = 1200) {
     img.src = base64;
   });
 }
+
+// --- リードタイム計算 ---
+export function calcLeadTime(fromDate, toDate) {
+  if (!fromDate || !toDate) return null;
+  const days = Math.floor((new Date(toDate) - new Date(fromDate)) / (1000 * 60 * 60 * 24));
+  return days >= 0 ? days : null;
+}
+
+export function renderLeadTimes(item) {
+  const rows = [];
+  const lt = (label, from, to) => {
+    const days = calcLeadTime(from, to);
+    if (days !== null) rows.push(`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span style="color:#888;">${label}</span><span style="color:${days > 7 ? '#f44336' : days > 3 ? '#ff9800' : '#4caf50'};">${days}日</span></div>`);
+  };
+  lt('分荷→出品', item.judged_at, item.listed_at);
+  lt('出品→落札', item.listed_at, item.sold_at);
+  lt('落札→梱包', item.sold_at, item.packed_at);
+  lt('梱包→発送', item.packed_at, item.shipped_at);
+
+  const total = calcLeadTime(item.judged_at, item.completed_at || item.shipped_at);
+  if (total !== null) rows.push(`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-top:1px solid #333;margin-top:4px;padding-top:6px;"><span style="color:#C5A258;font-weight:bold;">トータル</span><span style="color:#C5A258;font-weight:bold;">${total}日</span></div>`);
+
+  if (rows.length === 0) return '';
+  return `<div style="background:#1a1a2e;border-radius:8px;padding:10px 12px;margin-top:8px;"><div style="color:#888;font-size:11px;margin-bottom:4px;">リードタイム</div>${rows.join('')}</div>`;
+}
