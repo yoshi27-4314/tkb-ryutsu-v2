@@ -1020,8 +1020,26 @@ function renderShippingScreen(item) {
         </button>
       </div>
 
-      <!-- 送料 -->
+      <!-- 配送先 -->
       <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #262640;">
+        <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">配送先地域</label>
+        <select id="shipRegion" style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:15px;box-sizing:border-box;margin-bottom:8px;">
+          <option value="">選択してください</option>
+          <option value="北海道">北海道</option>
+          <option value="北東北">北東北（青森・秋田・岩手）</option>
+          <option value="南東北">南東北（宮城・山形・福島）</option>
+          <option value="関東">関東（茨城〜神奈川・山梨）</option>
+          <option value="信越">信越（長野・新潟）</option>
+          <option value="東海">東海（静岡・愛知・岐阜・三重）</option>
+          <option value="北陸">北陸（富山・石川・福井）</option>
+          <option value="関西">関西（京都〜兵庫・和歌山）</option>
+          <option value="中国">中国（岡山〜島根）</option>
+          <option value="四国">四国</option>
+          <option value="北九州">北九州（福岡〜大分）</option>
+          <option value="南九州">南九州（熊本・宮崎・鹿児島）</option>
+          <option value="沖縄">沖縄・離島</option>
+          <option value="直接引取">直接引取</option>
+        </select>
         <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">送料</label>
         <input id="shipCost" type="number" inputmode="numeric" placeholder="送料"
           value="${item.shipping_cost || ''}"
@@ -1101,10 +1119,31 @@ function renderShippingScreen(item) {
     }
   });
 
+  // 地域選択で送料を自動計算
+  _container.querySelector('#shipRegion').addEventListener('change', (e) => {
+    const region = e.target.value;
+    if (!region || region === '直接引取') return;
+    const regionIndex = CONFIG.SAGAWA_RATES.regions.indexOf(region);
+    if (regionIndex === -1) return;
+    // itemのサイズから送料を算出（shippingSizeがなければ60）
+    const size = parseInt(item.product_size) || 60;
+    const sizes = CONFIG.SAGAWA_RATES.sizes;
+    let matchSize = sizes[0];
+    for (const s of sizes) {
+      if (size <= s) { matchSize = s; break; }
+      matchSize = s;
+    }
+    const rate = CONFIG.SAGAWA_RATES.rates[matchSize];
+    if (rate && rate[regionIndex] != null) {
+      _container.querySelector('#shipCost').value = rate[regionIndex];
+    }
+  });
+
   // 出荷完了
   _container.querySelector('#btnShipComplete').addEventListener('click', async () => {
     const tracking = _container.querySelector('#shipTracking').value.trim();
     const cost = parseInt(_container.querySelector('#shipCost').value) || 0;
+    const region = _container.querySelector('#shipRegion').value;
 
     if (!selectedCarrier) { showToast('運送会社を選択してください'); return; }
     if (selectedCarrier !== '直接引き取り' && selectedCarrier !== '後日発送' && !tracking) {
@@ -1119,6 +1158,7 @@ function renderShippingScreen(item) {
         carrier: selectedCarrier,
         tracking_number: tracking,
         shipping_cost: cost,
+        shipping_region: region,
         shipped_at: new Date().toISOString(),
       };
 
