@@ -11,6 +11,7 @@ import {
   formatPrice, formatDate, formatDuration, emptyState,
   renderLeadTimes,
 } from '../core/ui.js';
+import { navigate } from '../core/router.js';
 
 // ---------------------------------------------------------------------------
 // 定数
@@ -178,6 +179,10 @@ function renderList() {
   }
 
   _container.innerHTML = `
+    <div style="padding:12px 16px 0;display:flex;align-items:center;gap:8px;">
+      <button id="tradeBackHome" style="background:none;border:none;color:#C5A258;font-size:22px;cursor:pointer;padding:4px 8px;">←</button>
+      <h2 style="color:#C5A258;font-size:18px;margin:0;">取引管理</h2>
+    </div>
     <div style="display:flex;border-bottom:1px solid #222;background:#0d0d1a;position:sticky;top:0;z-index:10;">
       ${tabsHtml}
     </div>
@@ -186,6 +191,11 @@ function renderList() {
     <div id="tradeCards" style="padding:0 12px 80px;display:flex;flex-direction:column;gap:10px;">
       ${cardsHtml}
     </div>`;
+
+  // ホームへ戻る
+  _container.querySelector('#tradeBackHome')?.addEventListener('click', () => {
+    navigate('home');
+  });
 
   // イベントリスナー
   _container.querySelectorAll('[data-tab]').forEach(btn => {

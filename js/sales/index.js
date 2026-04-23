@@ -67,6 +67,10 @@ function renderListView(container) {
   stopTimer();
 
   container.innerHTML = `
+    <div style="padding:12px 16px 0;display:flex;align-items:center;gap:8px;">
+      <button id="salesBackHome" style="background:none;border:none;color:#C5A258;font-size:22px;cursor:pointer;padding:4px 8px;">←</button>
+      <h2 style="color:#C5A258;font-size:18px;margin:0;">出品管理</h2>
+    </div>
     <div style="padding:12px 12px 0;">
       <!-- 検索バー -->
       <div style="position:relative;margin-bottom:12px;">
@@ -88,6 +92,11 @@ function renderListView(container) {
     <!-- 商品リスト -->
     <div id="salesList" style="padding:0 12px 100px;"></div>
   `;
+
+  // ホームへ戻る
+  container.querySelector('#salesBackHome')?.addEventListener('click', () => {
+    navigate('home');
+  });
 
   // イベント
   container.querySelector('#salesSearch').addEventListener('input', (e) => {

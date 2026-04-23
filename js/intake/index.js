@@ -1274,6 +1274,12 @@ function renderDone() {
 
   containerRef.innerHTML = `
     <div style="padding:16px 16px 100px;">
+      <!-- 戻るボタン + 完了ヘッダ -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <button id="doneBack" style="background:none;border:none;color:#C5A258;font-size:22px;cursor:pointer;padding:4px 8px;">←</button>
+        <h2 style="color:#C5A258;font-size:18px;margin:0;">登録完了</h2>
+      </div>
+
       <!-- 完了表示 -->
       <div style="text-align:center;padding:24px 0 16px;">
         <div style="font-size:48px;margin-bottom:8px;">${isConsult ? '📋' : '✅'}</div>
@@ -1318,6 +1324,12 @@ function renderDone() {
       </button>
     </div>
   `;
+
+  // 戻る（ソース選択画面に戻る）
+  containerRef.querySelector('#doneBack')?.addEventListener('click', () => {
+    state = resetState();
+    render();
+  });
 
   // 次の商品
   containerRef.querySelector('#doneNext').addEventListener('click', () => {
