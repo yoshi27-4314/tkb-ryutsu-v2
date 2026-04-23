@@ -1123,6 +1123,58 @@ async function handleStorageConfirm() {
     await db.updateItemStatus(state.mgmtNum, nextStatus, staff?.name || '');
 
     showToast('保管場所を登録しました');
+
+    // バックグラウンドでAI出品文を自動生成（スタッフは待たない）
+    (async () => {
+      try {
+        const item = await db.getItem(state.mgmtNum);
+        if (!item || item.listing_description) return; // already has description
+
+        // Use the first captured photo for AI context
+        const photo = state.capturePhotos?.[0] || state.judgmentPhoto;
+        if (!photo) return;
+
+        const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
+            'apikey': CONFIG.AWAI_KEY,
+          },
+          body: JSON.stringify({
+            image: photo,
+            images: state.capturePhotos || [photo],
+            step: 'judge',
+            context: {
+              task: 'listing',
+              productName: item.product_name || '',
+              maker: item.maker || '',
+              condition: item.condition || '',
+              channel: item.channel_name || '',
+              operationStatus: item.operation_status || '',
+              operationNote: item.operation_note || '',
+              size: item.product_size || '',
+            },
+          }),
+        });
+
+        if (!res.ok) return;
+        const result = await res.json();
+        const j = result.judgment || result;
+
+        const updates = {};
+        if (j.listingTitle) updates.listing_title = j.listingTitle.slice(0, 65);
+        if (j.listingDescription) updates.listing_description = j.listingDescription;
+
+        if (Object.keys(updates).length > 0) {
+          await db.updateItem(state.mgmtNum, updates);
+          console.log(`[自動生成] ${state.mgmtNum} の出品文を生成しました`);
+        }
+      } catch (e) {
+        console.warn('[自動生成] 出品文の自動生成に失敗（後で手動生成可能）:', e);
+      }
+    })();
+
     state.step = 'done';
     render();
   } catch (e) {
