@@ -1296,10 +1296,14 @@ function renderBulkImport() {
       </div>
       ${state.bulkPhoto ? `
       <button id="bulkOcrBtn" style="width:100%;padding:16px;border-radius:12px;font-size:16px;font-weight:bold;
-             border:none;cursor:pointer;background:#C5A258;color:#000;">
+             border:none;cursor:pointer;background:#C5A258;color:#000;margin-bottom:8px;">
         シートを解析する
       </button>
       ` : ''}
+      <button id="bulkManualAdd" style="width:100%;padding:14px;border-radius:12px;font-size:14px;
+             border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;">
+        ✏️ 手動で商品を追加
+      </button>
       ` : `
       <!-- 解析結果テーブル -->
       ${state.bulkPhoto ? `
@@ -1358,12 +1362,16 @@ function renderBulkImport() {
         </table>
       </div>
 
-      <div style="display:flex;gap:10px;margin-bottom:8px;">
-        <button id="bulkAddMore" style="flex:1;padding:12px;border-radius:12px;font-size:13px;
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <button id="bulkAddMore" style="flex:1;padding:10px;border-radius:12px;font-size:12px;
                border:1px solid #C5A258;background:transparent;color:#C5A258;cursor:pointer;">
-          📷 追加撮影（続きを読み取り）
+          📷 追加撮影
         </button>
-        <button id="bulkRescan" style="flex:1;padding:12px;border-radius:12px;font-size:13px;
+        <button id="bulkManualAdd" style="flex:1;padding:10px;border-radius:12px;font-size:12px;
+               border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;">
+          ✏️ 手動追加
+        </button>
+        <button id="bulkRescan" style="flex:1;padding:10px;border-radius:12px;font-size:12px;
                border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;">
           🔄 最初から
         </button>
@@ -1442,6 +1450,27 @@ function renderBulkImport() {
     state.bulkItems = [];
     state.bulkPhoto = null;
     render();
+  });
+
+  // 手動追加
+  containerRef.querySelector('#bulkManualAdd')?.addEventListener('click', () => {
+    const nextNum = state.bulkItems.length > 0
+      ? String(Math.max(...state.bulkItems.map(i => parseInt(i.number) || 0)) + 1)
+      : '';
+    state.bulkItems.push({
+      included: true,
+      number: nextNum,
+      name: '',
+      condition: '',
+      price: 0,
+      commissionRate: 30,
+    });
+    render();
+    // 最後の行の商品名にフォーカス
+    setTimeout(() => {
+      const inputs = containerRef.querySelectorAll('.bulk-name');
+      if (inputs.length > 0) inputs[inputs.length - 1].focus();
+    }, 100);
   });
 
   // 追加撮影（続きを読み取り）- 既存リストに追加、重複は品番で除外
