@@ -16,6 +16,41 @@ const SOURCE_TYPES = [
   { id: 'shimachiyo', label: 'シマチヨ',     category: 'kojin' },
 ];
 
+// 発送コスト計算
+function calcShippingCost(shippingSize) {
+  const costs = CONFIG.COSTS.size_shipping;
+  if (!shippingSize) return 0;
+  const sizes = Object.keys(costs).map(Number).sort((a, b) => a - b);
+  for (const s of sizes) {
+    if (shippingSize <= s) return costs[s];
+  }
+  return costs[sizes[sizes.length - 1]] || 0;
+}
+
+// 識別子生成: 管理番号/発送方法/目標価格/期待値
+function generateItemIdentifier(mgmtNum, shippingSize, targetPrice, marketDemand) {
+  // 発送方法
+  let shipping = 'S60';
+  if (shippingSize >= 170) {
+    shipping = 'YR'; // アートセッティング（大型家財）
+  } else if (shippingSize > 0) {
+    shipping = 'S' + shippingSize;
+  }
+
+  // 目標価格
+  let priceCode = '';
+  if (targetPrice >= 10000) {
+    priceCode = Math.round(targetPrice / 10000) + 'M';
+  } else if (targetPrice > 0) {
+    priceCode = Math.round(targetPrice / 100) + 'H';
+  }
+
+  // 期待値
+  const demand = marketDemand || 2;
+
+  return `${mgmtNum} /${shipping} /${priceCode} /${demand}`;
+}
+
 const STORAGE_BASES = [
   { id: 'atsumi', label: '厚見倉庫' },
   { id: 'honjo',  label: '本荘倉庫' },
@@ -388,6 +423,8 @@ async function handleAIJudgment() {
       approvalReason: j.approvalReason || '',
       listingTitle: j.listingTitle || '',
       listingDescription: j.listingDescription || '',
+      shippingSize: j.shippingSize || 0,
+      marketDemand: j.marketDemand || 2,
     };
     state.step = 'result';
     render();
@@ -674,6 +711,9 @@ async function handleConfirm(needsApproval) {
       start_price: r.startPrice || 0,
       target_price: r.targetPrice || 0,
       listing_account: state.sourceType || '',
+      product_size: r.estimatedSize || '',
+      shipping_cost: calcShippingCost(r.shippingSize),
+      market_demand: r.marketDemand || 2,
       memo: r.explanation || '',
       judged_by: staff.name,
       judged_at: new Date().toISOString(),
@@ -1164,7 +1204,17 @@ async function handleStorageConfirm() {
 
         const updates = {};
         if (j.listingTitle) updates.listing_title = j.listingTitle.slice(0, 65);
-        if (j.listingDescription) updates.listing_description = j.listingDescription;
+        if (j.listingDescription) {
+          // 識別子を説明文の先頭に追加
+          const identifier = generateItemIdentifier(
+            state.mgmtNum,
+            item.shipping_cost ? (state.aiResult && state.aiResult.shippingSize) || 60 : 60,
+            item.target_price || 0,
+            item.market_demand || (j.marketDemand) || 2
+          );
+          updates.listing_description = identifier + '\n\n' + j.listingDescription;
+        }
+        if (j.marketDemand) updates.market_demand = j.marketDemand;
 
         if (Object.keys(updates).length > 0) {
           await db.updateItem(state.mgmtNum, updates);
