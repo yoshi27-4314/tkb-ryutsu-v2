@@ -46,6 +46,12 @@ async function boot() {
     return;
   }
 
+  // テーマ適用
+  const savedTheme = localStorage.getItem('tkb_theme');
+  if (savedTheme === 'pink') {
+    document.documentElement.setAttribute('data-theme', 'pink');
+  }
+
   // 古いロック解除
   await cleanStaleLocks();
 

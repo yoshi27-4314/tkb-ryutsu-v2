@@ -2377,10 +2377,30 @@ async function renderKnowledge(container, params, staff) {
 // ============================================================
 // マイページ
 // ============================================================
+async function saveAvatarToCloud(staffName, avatarData, bgData) {
+  const dbClient = db.getDB();
+  if (!dbClient) return;
+  const updates = {};
+  if (avatarData !== undefined) updates.avatar_data = avatarData;
+  if (bgData !== undefined) updates.background_data = bgData;
+  await dbClient.from('staff').update(updates).eq('name', staffName);
+}
+
 async function renderMyPage(container, params, staff) {
-  const savedTheme = localStorage.getItem('tkb_v2_theme') || 'dark';
-  const savedAvatar = localStorage.getItem('tkb_v2_avatar') || '👤';
-  const savedBg = localStorage.getItem('tkb_v2_bg') || '';
+  const currentTheme = localStorage.getItem('tkb_theme') || 'gucci';
+
+  // クラウドからアバター・背景を取得
+  let cloudAvatar = '';
+  let cloudBg = '';
+  const dbClientAvatar = db.getDB();
+  if (dbClientAvatar) {
+    const { data: staffData } = await dbClientAvatar.from('staff').select('avatar_data, background_data').eq('name', staff.name).single();
+    cloudAvatar = staffData?.avatar_data || '';
+    cloudBg = staffData?.background_data || '';
+  }
+  // Use cloud data if available, otherwise fall back to localStorage
+  const savedAvatar = cloudAvatar || localStorage.getItem('tkb_v2_avatar') || '👤';
+  const savedBg = cloudBg || localStorage.getItem('tkb_v2_bg') || '';
   const mark = CONFIG.STAFF_MARKS[staff.name] || '';
 
   const avatars = ['👤', '😊', '🦊', '🐱', '🐶', '🦁', '🐻', '🐼', '🐨', '🐸', '🎃', '🤖', '👾', '🎩', '💎', '⭐'];
@@ -2514,18 +2534,25 @@ async function renderMyPage(container, params, staff) {
       </div>
     `)}
 
-    ${sectionTitle('テーマ')}
-    ${card(`
-      <div style="display:flex;gap:12px;">
-        <label style="display:flex;align-items:center;gap:6px;color:${TEXT_PRIMARY};font-size:14px;cursor:pointer;">
-          <input type="radio" name="theme" value="dark" ${savedTheme === 'dark' ? 'checked' : ''} style="accent-color:${GOLD};" /> ダーク
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;color:${TEXT_PRIMARY};font-size:14px;cursor:pointer;">
-          <input type="radio" name="theme" value="light" ${savedTheme === 'light' ? 'checked' : ''} style="accent-color:${GOLD};" /> ライト
-        </label>
-      </div>
-      <p style="color:${TEXT_MUTED};font-size:11px;margin-top:8px;">※ ライトテーマは今後対応予定です</p>
-    `)}
+    ${sectionTitle('テーマカラー')}
+    <div style="margin:0 16px 16px;display:flex;gap:8px;">
+      <button id="themeGucci" style="flex:1;padding:12px;border-radius:10px;border:2px solid ${currentTheme === 'gucci' ? 'var(--gold)' : 'var(--border)'};background:#F8F5EE;cursor:pointer;text-align:center;">
+        <div style="display:flex;gap:4px;justify-content:center;margin-bottom:4px;">
+          <span style="width:16px;height:16px;border-radius:4px;background:#006B3F;display:inline-block;"></span>
+          <span style="width:16px;height:16px;border-radius:4px;background:#C5A258;display:inline-block;"></span>
+          <span style="width:16px;height:16px;border-radius:4px;background:#CE2029;display:inline-block;"></span>
+        </div>
+        <span style="font-size:11px;color:#1C2541;">グッチ</span>
+      </button>
+      <button id="themePink" style="flex:1;padding:12px;border-radius:10px;border:2px solid ${currentTheme === 'pink' ? '#D4708F' : 'var(--border)'};background:#FFF5F7;cursor:pointer;text-align:center;">
+        <div style="display:flex;gap:4px;justify-content:center;margin-bottom:4px;">
+          <span style="width:16px;height:16px;border-radius:4px;background:#D4708F;display:inline-block;"></span>
+          <span style="width:16px;height:16px;border-radius:4px;background:#E891A8;display:inline-block;"></span>
+          <span style="width:16px;height:16px;border-radius:4px;background:#FFF5F7;display:inline-block;"></span>
+        </div>
+        <span style="font-size:11px;color:#4A2040;">ピンク</span>
+      </button>
+    </div>
 
     ${sectionTitle('機能ガイド')}
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
@@ -2564,6 +2591,7 @@ async function renderMyPage(container, params, staff) {
     el.addEventListener('click', () => {
       const avatar = el.dataset.avatar;
       localStorage.setItem('tkb_v2_avatar', avatar);
+      saveAvatarToCloud(staff.name, avatar, undefined);
       container.querySelector('#myAvatar').textContent = avatar;
       // 選択状態を更新
       container.querySelectorAll('[data-avatar]').forEach(b => {
@@ -2582,6 +2610,7 @@ async function renderMyPage(container, params, staff) {
       const base64 = await fileToBase64(file);
       const resized = await resizeImage(base64, 200);
       localStorage.setItem('tkb_v2_bg', resized);
+      saveAvatarToCloud(staff.name, undefined, resized);
       const avatarEl = container.querySelector('#myAvatar');
       avatarEl.style.backgroundImage = `url(${resized})`;
       avatarEl.style.backgroundSize = 'cover';
@@ -2594,18 +2623,23 @@ async function renderMyPage(container, params, staff) {
 
   container.querySelector('#btnBgReset').addEventListener('click', () => {
     localStorage.removeItem('tkb_v2_bg');
+    saveAvatarToCloud(staff.name, undefined, '');
     const avatarEl = container.querySelector('#myAvatar');
     avatarEl.style.backgroundImage = '';
     avatarEl.style.background = GOLD + '22';
     showToast('背景をリセットしました');
   });
 
-  // テーマ切り替え
-  container.querySelectorAll('input[name="theme"]').forEach(el => {
-    el.addEventListener('change', () => {
-      localStorage.setItem('tkb_v2_theme', el.value);
-      showToast(`テーマを${el.value === 'dark' ? 'ダーク' : 'ライト'}に変更しました`);
-    });
+  // テーマカラー切り替え
+  container.querySelector('#themeGucci')?.addEventListener('click', () => {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('tkb_theme', 'gucci');
+    renderMyPage(container, params, staff);
+  });
+  container.querySelector('#themePink')?.addEventListener('click', () => {
+    document.documentElement.setAttribute('data-theme', 'pink');
+    localStorage.setItem('tkb_theme', 'pink');
+    renderMyPage(container, params, staff);
   });
 
   // ログアウト

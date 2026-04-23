@@ -31,6 +31,29 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+[data-theme="pink"] {
+  --primary: #4A2040;
+  --accent: #D4708F;
+  --gold: #D4708F;
+  --gold-light: #E891A8;
+  --gold-dark: #B05A75;
+  --red: #CE2029;
+  --bg: #FFF5F7;
+  --bg-card: #ffffff;
+  --bg-card-hover: #FFF0F2;
+  --bg-input: #ffffff;
+  --border: #F0D4DB;
+  --border-gold: #D4708F;
+  --text: #4A2040;
+  --text-secondary: #7A5A6A;
+  --text-muted: #B0A0A8;
+  --success: #006B3F;
+  --warning: #D4708F;
+  --danger: #CE2029;
+  --info: #4A2040;
+  --shadow: rgba(74,32,64,0.08);
+}
+
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
 html, body {
