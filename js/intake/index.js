@@ -65,6 +65,8 @@ function resetState() {
     bulkItems: [],
     bulkPhoto: null,
     bulkRegisterResult: null,
+    operationStatus: '',
+    operationNote: '',
   };
 }
 
@@ -447,6 +449,26 @@ function renderResult() {
       </div>
       ` : ''}
 
+      <!-- 動作確認 -->
+      <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <p style="color:#888;font-size:11px;margin-bottom:8px;">動作確認（該当する場合のみ）</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;" id="operationBtns">
+          ${CONFIG.OPERATION_STATUS.map(s => `
+            <button class="op-btn" data-op="${s.id}"
+              style="padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;
+              border:1px solid ${state.operationStatus === s.id ? '#C5A258' : '#333'};
+              background:${state.operationStatus === s.id ? '#C5A258' : 'transparent'};
+              color:${state.operationStatus === s.id ? '#000' : '#e0e0e0'};">
+              ${s.icon} ${s.label}
+            </button>
+          `).join('')}
+        </div>
+        ${state.operationStatus === 'defective' ? `
+          <input type="text" id="operationNote" placeholder="不良内容を入力" value="${escapeHtml(state.operationNote)}"
+            style="width:100%;margin-top:8px;padding:10px 12px;border-radius:8px;border:1px solid #333;background:#0d1117;color:#e0e0e0;font-size:14px;outline:none;box-sizing:border-box;">
+        ` : ''}
+      </div>
+
       <!-- 委託販売: 手数料率 -->
       ${getSourceLabel(state.sourceType) === '渡辺質店' ? `
       <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
@@ -532,6 +554,22 @@ function renderResult() {
     addTouchFeedback(btn);
   });
 
+  // 動作確認ボタン
+  containerRef.querySelectorAll('.op-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const op = btn.dataset.op;
+      state.operationStatus = state.operationStatus === op ? '' : op;
+      render();
+    });
+  });
+
+  const opNoteInput = containerRef.querySelector('#operationNote');
+  if (opNoteInput) {
+    opNoteInput.addEventListener('input', (e) => {
+      state.operationNote = e.target.value;
+    });
+  }
+
   addTouchFeedback(containerRef.querySelector('#resultOk'));
   addTouchFeedback(containerRef.querySelector('#resultConsult'));
   addTouchFeedback(containerRef.querySelector('#resultRetry'));
@@ -611,6 +649,8 @@ async function handleConfirm(needsApproval) {
       commission_rate: getSourceLabel(state.sourceType) === 'ビッグスポーツ' ? 50 : (state.commissionRate || null),
       commission_type: getSourceLabel(state.sourceType) === 'ビッグスポーツ' ? 'fixed' : (state.commissionRate ? 'variable' : ''),
       consignment_partner: isConsignmentSource(state.sourceType) ? getSourceLabel(state.sourceType) : '',
+      operation_status: state.operationStatus || '',
+      operation_note: state.operationNote || '',
     };
 
     const created = await db.createItem(item);
@@ -712,6 +752,8 @@ function handleConsult() {
         commission_rate: getSourceLabel(state.sourceType) === 'ビッグスポーツ' ? 50 : (state.commissionRate || null),
         commission_type: getSourceLabel(state.sourceType) === 'ビッグスポーツ' ? 'fixed' : (state.commissionRate ? 'variable' : ''),
         consignment_partner: isConsignmentSource(state.sourceType) ? getSourceLabel(state.sourceType) : '',
+        operation_status: state.operationStatus || '',
+        operation_note: state.operationNote || '',
       };
 
       const created = await db.createItem(item);

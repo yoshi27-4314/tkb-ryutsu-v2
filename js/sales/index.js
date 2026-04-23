@@ -593,6 +593,8 @@ async function generateAIListing(container, item, type) {
           maker: item.maker || '',
           condition: item.condition || '',
           channel: item.channel_name || '',
+          operationStatus: item.operation_status || '',
+          operationNote: item.operation_note || '',
         },
       }),
     });

@@ -170,6 +170,14 @@ export const CONFIG = {
     { id: 'partner_request', label: '委託元依頼' },
   ],
 
+  // 動作確認ステータス
+  OPERATION_STATUS: [
+    { id: 'verified', label: '動作確認済み（正常）', icon: '✅', titleTag: '【動作確認済】' },
+    { id: 'power_only', label: '通電確認のみ', icon: '⚡', titleTag: '【通電確認済】' },
+    { id: 'unchecked', label: '動作未確認', icon: '❓', titleTag: '【動作未確認】' },
+    { id: 'defective', label: '動作不良あり', icon: '❌', titleTag: '【ジャンク】' },
+  ],
+
   // 担当マーク
   STAFF_MARKS: {
     '林和人': '〇',

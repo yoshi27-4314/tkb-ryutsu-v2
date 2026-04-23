@@ -306,6 +306,7 @@ function renderDetail(item) {
           ${detailRow('アカウント', item.listing_account)}
           ${detailRow('メーカー', item.maker)}
           ${detailRow('状態', item.condition ? CONFIG.CONDITIONS[item.condition] || item.condition : '')}
+          ${item.operation_status ? detailRow('動作', CONFIG.OPERATION_STATUS.find(s => s.id === item.operation_status)?.label || item.operation_status) : ''}
           ${detailRow('サイズ区分', item.size_category)}
           ${detailRow('保管場所', item.location)}
         </div>
