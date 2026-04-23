@@ -1323,9 +1323,10 @@ function renderBulkImport() {
               <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:36px;">✓</th>
               <th style="color:#888;font-size:11px;padding:8px 4px;text-align:left;">品番</th>
               <th style="color:#888;font-size:11px;padding:8px 4px;text-align:left;">商品名</th>
+              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:left;width:100px;">備考</th>
               <th style="color:#888;font-size:11px;padding:8px 4px;text-align:right;width:80px;">希望価格</th>
-              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:70px;">手数料</th>
-              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:36px;"></th>
+              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:60px;">手数料</th>
+              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:30px;"></th>
             </tr>
           </thead>
           <tbody>
@@ -1337,9 +1338,15 @@ function renderBulkImport() {
               </td>
               <td style="padding:8px 4px;color:#aaa;font-size:13px;">${escapeHtml(item.number)}</td>
               <td style="padding:8px 4px;">
-                <input type="text" class="bulk-name" data-idx="${i}" value="${escapeHtml(item.name)}"
+                <input type="text" class="bulk-name" data-idx="${i}" value="${escapeHtml(item.name + (item.detail ? ' ' + item.detail : ''))}"
                   style="background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;
                          padding:6px 8px;font-size:13px;width:100%;box-sizing:border-box;outline:none;">
+              </td>
+              <td style="padding:8px 4px;">
+                <input type="text" class="bulk-remarks" data-idx="${i}" value="${escapeHtml(item.remarks || '')}"
+                  style="background:#111;border:1px solid #333;border-radius:6px;color:#aaa;
+                         padding:6px 8px;font-size:12px;width:100%;box-sizing:border-box;outline:none;"
+                  placeholder="備考">
               </td>
               <td style="padding:8px 4px;">
                 <input type="number" class="bulk-price" data-idx="${i}" value="${item.price}"
@@ -1426,6 +1433,12 @@ function renderBulkImport() {
       state.bulkItems[idx].name = e.target.value;
     });
   });
+  containerRef.querySelectorAll('.bulk-remarks').forEach(el => {
+    el.addEventListener('input', (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      state.bulkItems[idx].remarks = e.target.value;
+    });
+  });
   containerRef.querySelectorAll('.bulk-price').forEach(el => {
     el.addEventListener('input', (e) => {
       const idx = parseInt(e.target.dataset.idx);
@@ -1508,7 +1521,7 @@ async function handleBulkOcr() {
         image: state.bulkPhoto,
         step: 'receipt',
         context: {
-          task: 'この手書きの商品リストの写真です。表の各行から商品情報を読み取ってください。結果はJSON配列のみで返してください（説明文不要）。形式: [{"number":"品番(3桁の数字)","name":"商品名","condition":"状態や備考","price":希望販売価格の数値}] 。価格が読み取れない場合はprice:0にしてください。手書き文字が不鮮明でも推測して全行読み取ってください。',
+          task: 'この手書きの商品リストの写真です。表の全ての列・全ての行から情報を漏れなく読み取ってください。結果はJSON配列のみで返してください（説明文不要）。形式: [{"number":"品番(3桁の数字)","name":"商品名（型番・詳細・括弧内の補足情報も全て含める）","detail":"商品詳細欄の補足情報（括弧内の記述等）","price":希望販売価格の数値,"remarks":"備考欄の内容（写真枚数・箱付き・付属品・コマ数等の記載を全て）"}] 。価格が読み取れない場合はprice:0。備考や詳細が空でも空文字で入れてください。表の右端の列（備考・通番等）も必ず読み取ること。手書き文字が不鮮明でも推測して全行読み取ってください。',
         },
       }),
     });
@@ -1566,8 +1579,10 @@ async function handleBulkOcr() {
       included: true,
       number: item.number || item.品番 || `W${i + 1}`,
       name: item.name || item.商品名 || '',
+      detail: item.detail || item.商品詳細 || '',
       condition: item.condition || item.状態 || '',
       price: parseInt(item.price || item.希望価格 || 0),
+      remarks: item.remarks || item.備考 || '',
       commissionRate: 30,
     }));
 
@@ -1626,7 +1641,8 @@ async function handleBulkRegister() {
         commission_type: 'per_item',
         consignment_partner: '渡辺質店',
         partner_item_number: item.number,
-        memo: `渡辺品番: ${item.number}`,
+        condition_note: item.remarks || '',
+        memo: `渡辺品番: ${item.number}${item.remarks ? ' / 備考: ' + item.remarks : ''}`,
         source: 'bulk_import',
       });
       success++;
