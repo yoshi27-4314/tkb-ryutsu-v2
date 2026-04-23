@@ -145,7 +145,7 @@ function renderList() {
     return `
       <button data-tab="${t.key}"
         style="flex:1;padding:10px 4px;border:none;border-bottom:2px solid ${active ? '#C5A258' : 'transparent'};
-        background:none;color:${active ? '#C5A258' : '#888'};font-size:13px;font-weight:${active ? 'bold' : 'normal'};cursor:pointer;white-space:nowrap;">
+        background:none;color:${active ? '#C5A258' : '#5a6272'};font-size:13px;font-weight:${active ? 'bold' : 'normal'};cursor:pointer;white-space:nowrap;">
         ${t.label}
       </button>`;
   }).join('');
@@ -155,7 +155,7 @@ function renderList() {
     <div style="padding:8px 12px;">
       <input id="tradeSearch" type="text" placeholder="管理番号・商品名で検索"
         value="${escapeHtml(_searchQuery)}"
-        style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #333;background:#1a1a2e;color:#e0e0e0;font-size:14px;box-sizing:border-box;">
+        style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:14px;box-sizing:border-box;">
     </div>`;
 
   // アクションバー（OCR取込ボタン）
@@ -165,7 +165,7 @@ function renderList() {
         📸 取引ナビOCR
       </button>
       ${_activeTab === 'ship' ? `
-        <button id="btnEhidenCsv" style="flex:1;padding:10px;border-radius:8px;background:#2a2a3e;color:#C5A258;border:1px solid #C5A258;font-size:13px;font-weight:bold;cursor:pointer;">
+        <button id="btnEhidenCsv" style="flex:1;padding:10px;border-radius:8px;background:#f0ede5;color:#C5A258;border:1px solid #C5A258;font-size:13px;font-weight:bold;cursor:pointer;">
           📄 E飛伝CSV
         </button>` : ''}
     </div>`;
@@ -183,7 +183,7 @@ function renderList() {
       <button id="tradeBackHome" style="background:none;border:none;color:#C5A258;font-size:22px;cursor:pointer;padding:4px 8px;">←</button>
       <h2 style="color:#C5A258;font-size:18px;margin:0;">取引管理</h2>
     </div>
-    <div style="display:flex;border-bottom:1px solid #222;background:#0d0d1a;position:sticky;top:0;z-index:10;">
+    <div style="display:flex;border-bottom:1px solid #dde0e6;background:#ffffff;position:sticky;top:0;z-index:10;">
       ${tabsHtml}
     </div>
     ${searchHtml}
@@ -240,28 +240,28 @@ function renderList() {
 
 function renderItemCard(item) {
   const profit = item.gross_profit != null ? formatPrice(item.gross_profit) : '';
-  const profitColor = item.gross_profit > 0 ? '#4caf50' : item.gross_profit < 0 ? '#f44336' : '#888';
+  const profitColor = item.gross_profit > 0 ? '#006B3F' : item.gross_profit < 0 ? '#CE2029' : '#5a6272';
 
   const carrierLabel = item.carrier || '';
   const trackingLabel = item.tracking_number ? `${item.tracking_number}` : '';
 
   return `
     <div data-mgmt="${escapeHtml(item.mgmt_num)}"
-      style="background:#1a1a2e;border-radius:12px;padding:14px;border:1px solid #262640;cursor:pointer;transition:transform 0.15s;"
+      style="background:#ffffff;border-radius:12px;padding:14px;border:1px solid #dde0e6;cursor:pointer;transition:transform 0.15s;"
       ontouchstart="this.style.transform='scale(0.98)'" ontouchend="this.style.transform=''">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <span style="color:#C5A258;font-size:12px;font-weight:bold;">${escapeHtml(item.mgmt_num)}</span>
         ${statusBadge(item.status)}
       </div>
-      <div style="color:#e0e0e0;font-size:14px;font-weight:bold;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+      <div style="color:#1C2541;font-size:14px;font-weight:bold;margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
         ${escapeHtml(item.product_name)}
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#888;">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5a6272;">
         <span>${escapeHtml(item.channel_name || '')}${item.listing_account ? ' / ' + escapeHtml(item.listing_account) : ''}</span>
-        <span style="color:#e0e0e0;font-weight:bold;">${item.sold_price ? formatPrice(item.sold_price) : ''}</span>
+        <span style="color:#1C2541;font-weight:bold;">${item.sold_price ? formatPrice(item.sold_price) : ''}</span>
       </div>
       ${carrierLabel || trackingLabel ? `
-        <div style="margin-top:4px;font-size:11px;color:#888;">
+        <div style="margin-top:4px;font-size:11px;color:#5a6272;">
           ${carrierLabel ? '🚚 ' + escapeHtml(carrierLabel) : ''}
           ${trackingLabel ? ' ' + escapeHtml(trackingLabel) : ''}
         </div>` : ''}
@@ -304,12 +304,12 @@ function renderDetail(item) {
       <!-- ステータス -->
       <div style="text-align:center;margin-bottom:16px;">
         ${statusBadge(item.status)}
-        ${isTrouble ? '<div style="color:#f44336;font-size:11px;margin-top:4px;">⚠ トラブル対応中</div>' : ''}
+        ${isTrouble ? '<div style="color:#CE2029;font-size:11px;margin-top:4px;">⚠ トラブル対応中</div>' : ''}
       </div>
 
       <!-- 商品情報 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
-        <div style="color:#e0e0e0;font-size:16px;font-weight:bold;margin-bottom:8px;">${escapeHtml(item.product_name)}</div>
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #dde0e6;">
+        <div style="color:#1C2541;font-size:16px;font-weight:bold;margin-bottom:8px;">${escapeHtml(item.product_name)}</div>
         ${item.main_photo_url ? `<img src="${escapeHtml(item.main_photo_url)}" style="width:100%;border-radius:8px;margin-bottom:8px;max-height:200px;object-fit:cover;">` : ''}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
           ${detailRow('チャンネル', item.channel_name)}
@@ -323,7 +323,7 @@ function renderDetail(item) {
       </div>
 
       <!-- 売上・コスト -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #dde0e6;">
         <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:10px;">💰 売上・コスト</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
           ${detailRow('落札価格', formatPrice(soldPrice))}
@@ -332,9 +332,9 @@ function renderDetail(item) {
           ${detailRow('梱包費', formatPrice(packingCost))}
           ${detailRow('仕入原価', formatPrice(acquisitionCost))}
         </div>
-        <div style="border-top:1px solid #333;margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;">
-          <span style="color:#888;font-size:13px;">粗利</span>
-          <span style="color:${grossProfit > 0 ? '#4caf50' : grossProfit < 0 ? '#f44336' : '#888'};font-size:16px;font-weight:bold;">${formatPrice(grossProfit)}</span>
+        <div style="border-top:1px solid #dde0e6;margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;">
+          <span style="color:#5a6272;font-size:13px;">粗利</span>
+          <span style="color:${grossProfit > 0 ? '#006B3F' : grossProfit < 0 ? '#CE2029' : '#5a6272'};font-size:16px;font-weight:bold;">${formatPrice(grossProfit)}</span>
         </div>
       </div>
 
@@ -347,7 +347,7 @@ function renderDetail(item) {
         const partnerShare = soldPrice > 0 ? soldPrice - tkbShare : 0;
         const tkbAfterFee = tkbShare - platformFee;
         return `
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #C5A25844;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #C5A25833;">
         <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:10px;">🤝 委託販売情報</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
           ${detailRow('委託先', cPartner)}
@@ -356,14 +356,14 @@ function renderDetail(item) {
           ${item.return_reason ? detailRow('返却理由', item.return_reason) : ''}
         </div>
         ${soldPrice > 0 ? `
-        <div style="border-top:1px solid #333;margin-top:10px;padding-top:10px;">
+        <div style="border-top:1px solid #dde0e6;margin-top:10px;padding-top:10px;">
           <div style="color:#C5A258;font-size:12px;font-weight:bold;margin-bottom:8px;">利益分配</div>
           <div style="display:flex;flex-direction:column;gap:4px;font-size:13px;">
-            <div style="display:flex;justify-content:space-between;"><span style="color:#888;">落札価格</span><span style="color:#e0e0e0;">${formatPrice(soldPrice)}</span></div>
-            <div style="display:flex;justify-content:space-between;"><span style="color:#888;">テイクバック取り分 (${cRate}%)</span><span style="color:#e0e0e0;">${formatPrice(tkbShare)}</span></div>
-            <div style="display:flex;justify-content:space-between;"><span style="color:#888;">ヤフオク手数料</span><span style="color:#f44336;">-${formatPrice(platformFee)}</span></div>
-            <div style="display:flex;justify-content:space-between;border-top:1px solid #333;padding-top:4px;margin-top:4px;"><span style="color:#888;font-weight:bold;">テイクバック実利益</span><span style="color:${tkbAfterFee > 0 ? '#4caf50' : '#f44336'};font-weight:bold;">${formatPrice(tkbAfterFee)}</span></div>
-            <div style="display:flex;justify-content:space-between;"><span style="color:#888;font-weight:bold;">委託元支払い</span><span style="color:#e0e0e0;font-weight:bold;">${formatPrice(partnerShare)}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#5a6272;">落札価格</span><span style="color:#1C2541;">${formatPrice(soldPrice)}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#5a6272;">テイクバック取り分 (${cRate}%)</span><span style="color:#1C2541;">${formatPrice(tkbShare)}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#5a6272;">ヤフオク手数料</span><span style="color:#CE2029;">-${formatPrice(platformFee)}</span></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid #dde0e6;padding-top:4px;margin-top:4px;"><span style="color:#5a6272;font-weight:bold;">テイクバック実利益</span><span style="color:${tkbAfterFee > 0 ? '#006B3F' : '#CE2029'};font-weight:bold;">${formatPrice(tkbAfterFee)}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#5a6272;font-weight:bold;">委託元支払い</span><span style="color:#1C2541;font-weight:bold;">${formatPrice(partnerShare)}</span></div>
           </div>
         </div>
         ` : ''}
@@ -371,7 +371,7 @@ function renderDetail(item) {
       })() : ''}
 
       <!-- 出荷情報 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #dde0e6;">
         <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:10px;">🚚 出荷情報</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
           ${detailRow('運送会社', item.carrier)}
@@ -387,7 +387,7 @@ function renderDetail(item) {
       ${renderLeadTimes(item)}
 
       <!-- 工程履歴 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #262640;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #dde0e6;">
         <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:10px;">📋 工程履歴</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
           ${detailRow('分荷', `${item.judged_by || ''} ${formatDate(item.judged_at)}`)}
@@ -399,9 +399,9 @@ function renderDetail(item) {
       </div>
 
       ${item.memo ? `
-        <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #262640;">
+        <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #dde0e6;">
           <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:6px;">📝 メモ</div>
-          <div style="color:#ccc;font-size:13px;white-space:pre-wrap;">${escapeHtml(item.memo)}</div>
+          <div style="color:#4a4a5a;font-size:13px;white-space:pre-wrap;">${escapeHtml(item.memo)}</div>
         </div>` : ''}
 
       <!-- アクションボタン -->
@@ -411,7 +411,7 @@ function renderDetail(item) {
         </button>` : ''}
 
         ${item.status === '梱包待ち' || item.status === '梱包中' ? `
-          <button id="btnPacking" style="padding:14px;border-radius:10px;background:#e91e63;color:#fff;border:none;font-size:15px;font-weight:bold;cursor:pointer;">
+          <button id="btnPacking" style="padding:14px;border-radius:10px;background:#c4356a;color:#fff;border:none;font-size:15px;font-weight:bold;cursor:pointer;">
             📦 梱包作業を開始
           </button>` : ''}
 
@@ -421,36 +421,36 @@ function renderDetail(item) {
           </button>` : ''}
 
         ${item.status === '落札済み' || item.status === '連絡待ち' ? `
-          <button id="btnOcrSales" style="padding:12px;border-radius:10px;background:#2a2a3e;color:#C5A258;border:1px solid #C5A258;font-size:14px;font-weight:bold;cursor:pointer;">
+          <button id="btnOcrSales" style="padding:12px;border-radius:10px;background:#f0ede5;color:#C5A258;border:1px solid #C5A258;font-size:14px;font-weight:bold;cursor:pointer;">
             📸 取引ナビOCRで売上登録
           </button>` : ''}
 
-        <button id="btnEditSales" style="padding:12px;border-radius:10px;background:#2a2a3e;color:#e0e0e0;border:1px solid #333;font-size:14px;cursor:pointer;">
+        <button id="btnEditSales" style="padding:12px;border-radius:10px;background:#f0ede5;color:#1C2541;border:1px solid #dde0e6;font-size:14px;cursor:pointer;">
           ✏️ 売上情報を編集
         </button>
 
         ${item.consignment_partner && !item.return_status ? `
-          <button id="btnReturn" style="padding:12px;border-radius:10px;background:#2a2a3e;color:#ff9800;border:1px solid #ff9800;font-size:14px;cursor:pointer;">
+          <button id="btnReturn" style="padding:12px;border-radius:10px;background:#f0ede5;color:#C5A258;border:1px solid #C5A258;font-size:14px;cursor:pointer;">
             ↩ 委託元へ返却
           </button>` : ''}
 
         ${!isTrouble ? `
-          <button id="btnTrouble" style="padding:12px;border-radius:10px;background:#2a2a3e;color:#f44336;border:1px solid #f44336;font-size:14px;cursor:pointer;">
+          <button id="btnTrouble" style="padding:12px;border-radius:10px;background:#f0ede5;color:#CE2029;border:1px solid #CE2029;font-size:14px;cursor:pointer;">
             ⚠ トラブル報告
           </button>` : `
-          <button id="btnTroubleNext" style="padding:12px;border-radius:10px;background:#f44336;color:#fff;border:none;font-size:14px;font-weight:bold;cursor:pointer;">
+          <button id="btnTroubleNext" style="padding:12px;border-radius:10px;background:#CE2029;color:#fff;border:none;font-size:14px;font-weight:bold;cursor:pointer;">
             ▶ トラブル: 次のステップへ
           </button>`}
       </div>
 
       <!-- 管理操作 -->
-      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #333;">
-        <p style="color:#666;font-size:11px;margin-bottom:8px;">管理操作</p>
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #dde0e6;">
+        <p style="color:#8a8a8a;font-size:11px;margin-bottom:8px;">管理操作</p>
         <div style="display:flex;gap:8px;">
-          <button id="btnRevertStatus" style="flex:1;padding:10px;border-radius:8px;border:1px solid #ff9800;background:transparent;color:#ff9800;font-size:13px;cursor:pointer;">
+          <button id="btnRevertStatus" style="flex:1;padding:10px;border-radius:8px;border:1px solid #C5A258;background:transparent;color:#C5A258;font-size:13px;cursor:pointer;">
             ↩ ステータスを戻す
           </button>
-          <button id="btnDeleteItem" style="flex:1;padding:10px;border-radius:8px;border:1px solid #f44336;background:transparent;color:#f44336;font-size:13px;cursor:pointer;">
+          <button id="btnDeleteItem" style="flex:1;padding:10px;border-radius:8px;border:1px solid #CE2029;background:transparent;color:#CE2029;font-size:13px;cursor:pointer;">
             🗑 削除
           </button>
         </div>
@@ -528,19 +528,19 @@ function renderDetail(item) {
     }
 
     const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(28,37,65,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
     overlay.innerHTML = `
-      <div style="background:#1a1a2e;border-radius:16px;padding:24px;max-width:320px;width:100%;">
-        <h3 style="color:#ff9800;font-size:16px;margin:0 0 16px;">↩ ステータスを戻す</h3>
-        <p style="color:#888;font-size:12px;margin-bottom:12px;">現在: ${escapeHtml(item.status)}</p>
+      <div style="background:#ffffff;border-radius:16px;padding:24px;max-width:320px;width:100%;">
+        <h3 style="color:#C5A258;font-size:16px;margin:0 0 16px;">↩ ステータスを戻す</h3>
+        <p style="color:#5a6272;font-size:12px;margin-bottom:12px;">現在: ${escapeHtml(item.status)}</p>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
           ${options.map(s => `
-            <button data-revert-to="${escapeHtml(s)}" style="padding:12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:14px;cursor:pointer;text-align:left;">
+            <button data-revert-to="${escapeHtml(s)}" style="padding:12px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:14px;cursor:pointer;text-align:left;">
               → ${escapeHtml(s)}
             </button>
           `).join('')}
         </div>
-        <button id="revertCancel" style="width:100%;padding:10px;border-radius:8px;background:#333;color:#ccc;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
+        <button id="revertCancel" style="width:100%;padding:10px;border-radius:8px;background:#dde0e6;color:#4a4a5a;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
       </div>
     `;
     document.body.appendChild(overlay);
@@ -585,8 +585,8 @@ function renderDetail(item) {
 
 function detailRow(label, value) {
   return `
-    <div style="color:#888;">${label}</div>
-    <div style="color:#e0e0e0;">${escapeHtml(String(value || '—'))}</div>`;
+    <div style="color:#5a6272;">${label}</div>
+    <div style="color:#1C2541;">${escapeHtml(String(value || '—'))}</div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -645,7 +645,7 @@ function renderOcrResult(data) {
         <div style="width:40px;"></div>
       </div>
 
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #dde0e6;">
         <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:10px;">📋 取引情報</div>
         <div style="display:flex;flex-direction:column;gap:10px;">
           ${ocrField('管理番号', 'ocrMgmtNum', data.mgmt_num || '')}
@@ -663,7 +663,7 @@ function renderOcrResult(data) {
         <button id="btnApplyOcr" style="padding:14px;border-radius:10px;background:#C5A258;color:#000;border:none;font-size:15px;font-weight:bold;cursor:pointer;">
           ✅ この内容で登録・更新
         </button>
-        <button id="btnRetakeOcr" style="padding:12px;border-radius:10px;background:#2a2a3e;color:#e0e0e0;border:1px solid #333;font-size:14px;cursor:pointer;">
+        <button id="btnRetakeOcr" style="padding:12px;border-radius:10px;background:#f0ede5;color:#1C2541;border:1px solid #dde0e6;font-size:14px;cursor:pointer;">
           📸 撮り直し
         </button>
       </div>
@@ -728,9 +728,9 @@ function renderOcrResult(data) {
 function ocrField(label, id, value) {
   return `
     <div>
-      <label style="color:#888;font-size:11px;display:block;margin-bottom:2px;">${label}</label>
+      <label style="color:#5a6272;font-size:11px;display:block;margin-bottom:2px;">${label}</label>
       <input id="${id}" type="text" value="${escapeHtml(String(value))}"
-        style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:14px;box-sizing:border-box;">
+        style="width:100%;padding:8px 10px;border-radius:6px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:14px;box-sizing:border-box;">
     </div>`;
 }
 
@@ -804,42 +804,42 @@ function renderSalesEditForm(item, prefill = {}) {
         <div style="width:40px;"></div>
       </div>
 
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
-        <div style="color:#e0e0e0;font-size:14px;font-weight:bold;margin-bottom:4px;">${escapeHtml(item.mgmt_num)} ${escapeHtml(item.product_name)}</div>
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #dde0e6;">
+        <div style="color:#1C2541;font-size:14px;font-weight:bold;margin-bottom:4px;">${escapeHtml(item.mgmt_num)} ${escapeHtml(item.product_name)}</div>
       </div>
 
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #dde0e6;">
         <div style="display:flex;flex-direction:column;gap:12px;">
           <div>
-            <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">落札価格</label>
+            <label style="color:#5a6272;font-size:12px;display:block;margin-bottom:4px;">落札価格</label>
             <input id="editSoldPrice" type="number" inputmode="numeric" value="${soldPrice}"
-              style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:16px;box-sizing:border-box;">
+              style="width:100%;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:16px;box-sizing:border-box;">
           </div>
           <div>
-            <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">手数料</label>
+            <label style="color:#5a6272;font-size:12px;display:block;margin-bottom:4px;">手数料</label>
             <input id="editPlatformFee" type="number" inputmode="numeric" value="${platformFee}"
-              style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:16px;box-sizing:border-box;">
+              style="width:100%;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:16px;box-sizing:border-box;">
           </div>
           <div>
-            <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">送料</label>
+            <label style="color:#5a6272;font-size:12px;display:block;margin-bottom:4px;">送料</label>
             <input id="editShippingCost" type="number" inputmode="numeric" value="${shippingCost}"
-              style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:16px;box-sizing:border-box;">
+              style="width:100%;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:16px;box-sizing:border-box;">
           </div>
           <div>
-            <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">梱包費</label>
+            <label style="color:#5a6272;font-size:12px;display:block;margin-bottom:4px;">梱包費</label>
             <input id="editPackingCost" type="number" inputmode="numeric" value="${packingCost}"
-              style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:16px;box-sizing:border-box;">
+              style="width:100%;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:16px;box-sizing:border-box;">
           </div>
           <div>
-            <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">仕入原価</label>
+            <label style="color:#5a6272;font-size:12px;display:block;margin-bottom:4px;">仕入原価</label>
             <input id="editAcqCost" type="number" inputmode="numeric" value="${acquisitionCost}"
-              style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:16px;box-sizing:border-box;">
+              style="width:100%;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:16px;box-sizing:border-box;">
           </div>
 
-          <div style="border-top:1px solid #333;padding-top:12px;">
+          <div style="border-top:1px solid #dde0e6;padding-top:12px;">
             <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="color:#888;font-size:13px;">粗利（自動計算）</span>
-              <span id="editGrossProfit" style="color:#4caf50;font-size:18px;font-weight:bold;">—</span>
+              <span style="color:#5a6272;font-size:13px;">粗利（自動計算）</span>
+              <span id="editGrossProfit" style="color:#006B3F;font-size:18px;font-weight:bold;">—</span>
             </div>
           </div>
         </div>
@@ -862,7 +862,7 @@ function renderSalesEditForm(item, prefill = {}) {
     const el = _container.querySelector('#editGrossProfit');
     if (el) {
       el.textContent = formatPrice(gp);
-      el.style.color = gp > 0 ? '#4caf50' : gp < 0 ? '#f44336' : '#888';
+      el.style.color = gp > 0 ? '#006B3F' : gp < 0 ? '#CE2029' : '#5a6272';
     }
   };
   inputs.forEach(id => {
@@ -952,29 +952,29 @@ function renderPackingScreen(item) {
       </div>
 
       <!-- 商品情報 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #262640;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #dde0e6;">
         <div style="color:#C5A258;font-size:12px;font-weight:bold;">${escapeHtml(item.mgmt_num)}</div>
-        <div style="color:#e0e0e0;font-size:16px;font-weight:bold;margin-top:4px;">${escapeHtml(item.product_name)}</div>
-        <div style="color:#888;font-size:12px;margin-top:4px;">
+        <div style="color:#1C2541;font-size:16px;font-weight:bold;margin-top:4px;">${escapeHtml(item.product_name)}</div>
+        <div style="color:#5a6272;font-size:12px;margin-top:4px;">
           ${escapeHtml(item.size_category || '')} ${item.product_size ? '(' + escapeHtml(item.product_size) + ')' : ''}
           | ${escapeHtml(item.location || '')}
         </div>
       </div>
 
       <!-- タイマー -->
-      <div style="background:#1a1a2e;border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;border:2px solid #e91e63;">
-        <div style="color:#e91e63;font-size:13px;font-weight:bold;margin-bottom:8px;">⏱ 梱包タイマー</div>
-        <div id="packTimer" style="color:#e0e0e0;font-size:48px;font-weight:bold;font-family:monospace;">00:00</div>
-        <div style="color:#888;font-size:12px;margin-top:8px;">担当: ${escapeHtml(staffName)}</div>
+      <div style="background:#ffffff;border-radius:16px;padding:24px;margin-bottom:16px;text-align:center;border:2px solid #c4356a;">
+        <div style="color:#c4356a;font-size:13px;font-weight:bold;margin-bottom:8px;">⏱ 梱包タイマー</div>
+        <div id="packTimer" style="color:#1C2541;font-size:48px;font-weight:bold;font-family:monospace;">00:00</div>
+        <div style="color:#5a6272;font-size:12px;margin-top:8px;">担当: ${escapeHtml(staffName)}</div>
       </div>
 
       <!-- 運送会社選択 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #262640;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #dde0e6;">
         <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:10px;">🚚 運送会社</div>
         <div id="carrierGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
           ${CONFIG.CARRIERS.map(c => `
             <button data-carrier="${escapeHtml(c.name)}"
-              style="padding:10px 4px;border-radius:8px;border:1px solid #333;background:${item.carrier === c.name ? '#C5A258' : '#0d0d1a'};
+              style="padding:10px 4px;border-radius:8px;border:1px solid #dde0e6;background:${item.carrier === c.name ? '#C5A258' : '#ffffff'};
               color:${item.carrier === c.name ? '#000' : '#e0e0e0'};font-size:12px;cursor:pointer;text-align:center;">
               ${escapeHtml(c.name)}
             </button>
@@ -983,14 +983,14 @@ function renderPackingScreen(item) {
       </div>
 
       <!-- 梱包メモ -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #262640;">
-        <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">梱包メモ</label>
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #dde0e6;">
+        <label style="color:#5a6272;font-size:12px;display:block;margin-bottom:4px;">梱包メモ</label>
         <textarea id="packMemo" rows="3" placeholder="梱包の注意点、使用資材など"
-          style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+          style="width:100%;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
       </div>
 
       <!-- 完了ボタン -->
-      <button id="btnPackComplete" style="width:100%;padding:16px;border-radius:12px;background:#4caf50;color:#fff;border:none;font-size:16px;font-weight:bold;cursor:pointer;">
+      <button id="btnPackComplete" style="width:100%;padding:16px;border-radius:12px;background:#006B3F;color:#fff;border:none;font-size:16px;font-weight:bold;cursor:pointer;">
         ✅ 梱包完了
       </button>
     </div>`;
@@ -1012,7 +1012,7 @@ function renderPackingScreen(item) {
       selectedCarrier = btn.dataset.carrier;
       _container.querySelectorAll('[data-carrier]').forEach(b => {
         const isActive = b.dataset.carrier === selectedCarrier;
-        b.style.background = isActive ? '#C5A258' : '#0d0d1a';
+        b.style.background = isActive ? '#C5A258' : '#ffffff';
         b.style.color = isActive ? '#000' : '#e0e0e0';
       });
     });
@@ -1085,23 +1085,23 @@ function renderShippingScreen(item) {
       </div>
 
       <!-- 商品情報 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #dde0e6;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div>
             <div style="color:#C5A258;font-size:12px;font-weight:bold;">${escapeHtml(item.mgmt_num)}</div>
-            <div style="color:#e0e0e0;font-size:14px;font-weight:bold;margin-top:2px;">${escapeHtml(item.product_name)}</div>
+            <div style="color:#1C2541;font-size:14px;font-weight:bold;margin-top:2px;">${escapeHtml(item.product_name)}</div>
           </div>
           ${statusBadge(item.status)}
         </div>
       </div>
 
       <!-- 運送会社 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #dde0e6;">
         <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:10px;">🚚 運送会社</div>
         <div id="shipCarrierGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
           ${CONFIG.CARRIERS.map(c => `
             <button data-carrier="${escapeHtml(c.name)}"
-              style="padding:10px 4px;border-radius:8px;border:1px solid #333;background:${item.carrier === c.name ? '#C5A258' : '#0d0d1a'};
+              style="padding:10px 4px;border-radius:8px;border:1px solid #dde0e6;background:${item.carrier === c.name ? '#C5A258' : '#ffffff'};
               color:${item.carrier === c.name ? '#000' : '#e0e0e0'};font-size:12px;cursor:pointer;text-align:center;">
               ${escapeHtml(c.name)}
             </button>
@@ -1110,20 +1110,20 @@ function renderShippingScreen(item) {
       </div>
 
       <!-- 追跡番号 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #dde0e6;">
         <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:10px;">📄 追跡番号</div>
         <input id="shipTracking" type="text" inputmode="numeric" placeholder="追跡番号を入力"
           value="${escapeHtml(item.tracking_number || '')}"
-          style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:16px;box-sizing:border-box;margin-bottom:8px;">
-        <button id="btnOcrTracking" style="width:100%;padding:10px;border-radius:8px;background:#2a2a3e;color:#C5A258;border:1px solid #C5A258;font-size:13px;font-weight:bold;cursor:pointer;">
+          style="width:100%;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:16px;box-sizing:border-box;margin-bottom:8px;">
+        <button id="btnOcrTracking" style="width:100%;padding:10px;border-radius:8px;background:#f0ede5;color:#C5A258;border:1px solid #C5A258;font-size:13px;font-weight:bold;cursor:pointer;">
           📸 送り状を撮影してOCR
         </button>
       </div>
 
       <!-- 配送先 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #262640;">
-        <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">配送先地域</label>
-        <select id="shipRegion" style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:15px;box-sizing:border-box;margin-bottom:8px;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #dde0e6;">
+        <label style="color:#5a6272;font-size:12px;display:block;margin-bottom:4px;">配送先地域</label>
+        <select id="shipRegion" style="width:100%;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:15px;box-sizing:border-box;margin-bottom:8px;">
           <option value="">選択してください</option>
           <option value="北海道">北海道</option>
           <option value="北東北">北東北（青森・秋田・岩手）</option>
@@ -1140,10 +1140,10 @@ function renderShippingScreen(item) {
           <option value="沖縄">沖縄・離島</option>
           <option value="直接引取">直接引取</option>
         </select>
-        <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">送料</label>
+        <label style="color:#5a6272;font-size:12px;display:block;margin-bottom:4px;">送料</label>
         <input id="shipCost" type="number" inputmode="numeric" placeholder="送料"
           value="${item.shipping_cost || ''}"
-          style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:16px;box-sizing:border-box;">
+          style="width:100%;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:16px;box-sizing:border-box;">
       </div>
 
       <!-- 出荷完了 -->
@@ -1160,7 +1160,7 @@ function renderShippingScreen(item) {
       selectedCarrier = btn.dataset.carrier;
       _container.querySelectorAll('#shipCarrierGrid [data-carrier]').forEach(b => {
         const isActive = b.dataset.carrier === selectedCarrier;
-        b.style.background = isActive ? '#C5A258' : '#0d0d1a';
+        b.style.background = isActive ? '#C5A258' : '#ffffff';
         b.style.color = isActive ? '#000' : '#e0e0e0';
       });
     });
@@ -1205,7 +1205,7 @@ function renderShippingScreen(item) {
           selectedCarrier = result.data.carrier;
           _container.querySelectorAll('#shipCarrierGrid [data-carrier]').forEach(b => {
             const isActive = b.dataset.carrier === selectedCarrier;
-            b.style.background = isActive ? '#C5A258' : '#0d0d1a';
+            b.style.background = isActive ? '#C5A258' : '#ffffff';
             b.style.color = isActive ? '#000' : '#e0e0e0';
           });
         }
@@ -1404,23 +1404,23 @@ function renderReturnDialog(item) {
   ];
 
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(28,37,65,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
   overlay.innerHTML = `
-    <div style="background:#1a1a2e;border-radius:16px;padding:24px;max-width:380px;width:100%;">
-      <h3 style="color:#ff9800;font-size:16px;margin-bottom:4px;">↩ 委託元へ返却</h3>
-      <p style="color:#888;font-size:12px;margin-bottom:16px;">${escapeHtml(item.mgmt_num)} - ${escapeHtml(item.product_name)}</p>
-      <p style="color:#aaa;font-size:13px;margin-bottom:12px;">返却理由を選択してください</p>
+    <div style="background:#ffffff;border-radius:16px;padding:24px;max-width:380px;width:100%;">
+      <h3 style="color:#C5A258;font-size:16px;margin-bottom:4px;">↩ 委託元へ返却</h3>
+      <p style="color:#5a6272;font-size:12px;margin-bottom:16px;">${escapeHtml(item.mgmt_num)} - ${escapeHtml(item.product_name)}</p>
+      <p style="color:#5a6272;font-size:13px;margin-bottom:12px;">返却理由を選択してください</p>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
         ${reasons.map((r, i) => `
           <button class="return-reason-btn" data-reason="${escapeHtml(r.label)}"
-            style="padding:12px 16px;border-radius:8px;border:1px solid ${i === 0 ? '#ff9800' : '#333'};
-            background:${i === 0 ? '#ff980022' : '#0d0d1a'};color:#e0e0e0;text-align:left;cursor:pointer;font-size:14px;">
+            style="padding:12px 16px;border-radius:8px;border:1px solid ${i === 0 ? '#ff9800' : '#dde0e6'};
+            background:${i === 0 ? '#ff980022' : '#ffffff'};color:#1C2541;text-align:left;cursor:pointer;font-size:14px;">
             ${escapeHtml(r.label)}
           </button>
         `).join('')}
       </div>
       <div style="display:flex;gap:10px;">
-        <button id="returnCancel" style="flex:1;padding:12px;border-radius:8px;background:#333;color:#ccc;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
+        <button id="returnCancel" style="flex:1;padding:12px;border-radius:8px;background:#dde0e6;color:#4a4a5a;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
         <button id="returnConfirm" style="flex:1;padding:12px;border-radius:8px;background:#ff9800;color:#000;border:none;font-size:14px;font-weight:bold;cursor:pointer;">返却確定</button>
       </div>
     </div>
@@ -1434,8 +1434,8 @@ function renderReturnDialog(item) {
       selectedReason = btn.dataset.reason;
       overlay.querySelectorAll('.return-reason-btn').forEach(b => {
         const isActive = b.dataset.reason === selectedReason;
-        b.style.borderColor = isActive ? '#ff9800' : '#333';
-        b.style.background = isActive ? '#ff980022' : '#0d0d1a';
+        b.style.borderColor = isActive ? '#ff9800' : '#dde0e6';
+        b.style.background = isActive ? '#ff980022' : '#ffffff';
       });
     });
   });
@@ -1492,19 +1492,19 @@ function renderTroubleScreen(item) {
     <div style="padding:12px;padding-bottom:100px;">
       <div style="display:flex;align-items:center;margin-bottom:16px;">
         <button id="btnBackTrouble" style="background:none;border:none;color:#C5A258;font-size:24px;cursor:pointer;padding:4px 8px;">←</button>
-        <div style="flex:1;text-align:center;color:#f44336;font-size:15px;font-weight:bold;">トラブル報告</div>
+        <div style="flex:1;text-align:center;color:#CE2029;font-size:15px;font-weight:bold;">トラブル報告</div>
         <div style="width:40px;"></div>
       </div>
 
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #f4433644;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #CE202944;">
         <div style="color:#C5A258;font-size:12px;font-weight:bold;">${escapeHtml(item.mgmt_num)}</div>
-        <div style="color:#e0e0e0;font-size:14px;font-weight:bold;margin-top:4px;">${escapeHtml(item.product_name)}</div>
+        <div style="color:#1C2541;font-size:14px;font-weight:bold;margin-top:4px;">${escapeHtml(item.product_name)}</div>
         <div style="margin-top:6px;">${statusBadge(item.status)}</div>
       </div>
 
       <!-- トラブル種別 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
-        <div style="color:#f44336;font-size:13px;font-weight:bold;margin-bottom:10px;">⚠ トラブル種別</div>
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #dde0e6;">
+        <div style="color:#CE2029;font-size:13px;font-weight:bold;margin-bottom:10px;">⚠ トラブル種別</div>
         <div id="troubleTypes" style="display:flex;flex-direction:column;gap:8px;">
           ${troubleOption('商品問題連絡', '商品の破損・不良・相違', item)}
           ${troubleOption('運送会社相談中', '配送中の事故・遅延', item)}
@@ -1514,13 +1514,13 @@ function renderTroubleScreen(item) {
       </div>
 
       <!-- 詳細メモ -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #262640;">
-        <label style="color:#888;font-size:12px;display:block;margin-bottom:4px;">トラブル内容（詳細）</label>
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid #dde0e6;">
+        <label style="color:#5a6272;font-size:12px;display:block;margin-bottom:4px;">トラブル内容（詳細）</label>
         <textarea id="troubleMemo" rows="4" placeholder="何が起きたか、経緯を記録してください"
-          style="width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+          style="width:100%;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
       </div>
 
-      <button id="btnSubmitTrouble" style="width:100%;padding:14px;border-radius:10px;background:#f44336;color:#fff;border:none;font-size:15px;font-weight:bold;cursor:pointer;">
+      <button id="btnSubmitTrouble" style="width:100%;padding:14px;border-radius:10px;background:#CE2029;color:#fff;border:none;font-size:15px;font-weight:bold;cursor:pointer;">
         ⚠ トラブルとして記録
       </button>
     </div>`;
@@ -1532,8 +1532,8 @@ function renderTroubleScreen(item) {
       selectedTrouble = btn.dataset.trouble;
       _container.querySelectorAll('[data-trouble]').forEach(b => {
         const isActive = b.dataset.trouble === selectedTrouble;
-        b.style.borderColor = isActive ? '#f44336' : '#333';
-        b.style.background = isActive ? '#f4433622' : '#0d0d1a';
+        b.style.borderColor = isActive ? '#CE2029' : '#dde0e6';
+        b.style.background = isActive ? '#CE202922' : '#ffffff';
       });
     });
   });
@@ -1565,10 +1565,10 @@ function troubleOption(status, description, item) {
   const isFirst = status === '商品問題連絡';
   return `
     <button data-trouble="${status}"
-      style="padding:12px;border-radius:8px;border:1px solid ${isFirst ? '#f44336' : '#333'};
-      background:${isFirst ? '#f4433622' : '#0d0d1a'};color:#e0e0e0;text-align:left;cursor:pointer;">
+      style="padding:12px;border-radius:8px;border:1px solid ${isFirst ? '#CE2029' : '#dde0e6'};
+      background:${isFirst ? '#CE202922' : '#ffffff'};color:#1C2541;text-align:left;cursor:pointer;">
       <div style="font-size:14px;font-weight:bold;">${status}</div>
-      <div style="font-size:11px;color:#888;margin-top:2px;">${description}</div>
+      <div style="font-size:11px;color:#5a6272;margin-top:2px;">${description}</div>
     </button>`;
 }
 

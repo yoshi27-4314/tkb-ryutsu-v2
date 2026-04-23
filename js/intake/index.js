@@ -149,7 +149,7 @@ function render() {
   if (!containerRef) return;
   const staff = getCurrentStaff();
   if (!staff) {
-    containerRef.innerHTML = '<p style="color:#f44;text-align:center;padding:40px;">ログインしてください</p>';
+    containerRef.innerHTML = '<p style="color:#CE2029;text-align:center;padding:40px;">ログインしてください</p>';
     return;
   }
 
@@ -175,8 +175,8 @@ function renderSourceSelect() {
 
   const btns = SOURCE_TYPES.map(s => `
     <button class="intake-source-btn" data-id="${s.id}" data-cat="${s.category}"
-      style="background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:20px 12px;
-             text-align:center;color:#e0e0e0;cursor:pointer;transition:all 0.15s;font-size:15px;font-weight:bold;">
+      style="background:#ffffff;border:1px solid #dde0e6;border-radius:12px;padding:20px 12px;
+             text-align:center;color:#1C2541;cursor:pointer;transition:all 0.15s;font-size:15px;font-weight:bold;">
       ${escapeHtml(s.label)}
     </button>
   `).join('');
@@ -184,11 +184,11 @@ function renderSourceSelect() {
   containerRef.innerHTML = `
     <div style="padding:16px 16px 100px;">
       <h2 style="color:#C5A258;font-size:18px;margin-bottom:4px;">入荷 - 分荷判定</h2>
-      <p style="color:#888;font-size:13px;margin-bottom:20px;">仕入先を選択してください</p>
+      <p style="color:#5a6272;font-size:13px;margin-bottom:20px;">仕入先を選択してください</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         ${btns}
       </div>
-      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #333;">
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #dde0e6;">
         <button id="btnBulkWatanabe" style="width:100%;padding:14px;border-radius:12px;border:1px solid #C5A258;background:transparent;color:#C5A258;font-size:14px;cursor:pointer;">
           📋 渡辺質店 一括登録（シート読み取り）
         </button>
@@ -221,11 +221,11 @@ function renderSourceSelect() {
 
 function renderTodayCount() {
   return `
-    <div id="intakeTodayStats" style="margin-top:24px;padding:16px;background:#1a1a2e;border-radius:12px;">
-      <p style="color:#888;font-size:12px;margin-bottom:8px;">今日の分荷実績</p>
+    <div id="intakeTodayStats" style="margin-top:24px;padding:16px;background:#ffffff;border-radius:12px;">
+      <p style="color:#5a6272;font-size:12px;margin-bottom:8px;">今日の分荷実績</p>
       <div style="display:flex;align-items:baseline;gap:4px;">
         <span id="intakeCountNum" style="color:#C5A258;font-size:28px;font-weight:bold;">—</span>
-        <span style="color:#888;font-size:13px;">/ ${CONFIG.DAILY_KPI.bunka} 個目標</span>
+        <span style="color:#5a6272;font-size:13px;">/ ${CONFIG.DAILY_KPI.bunka} 個目標</span>
       </div>
     </div>
   `;
@@ -251,40 +251,40 @@ function renderCapture() {
         <button id="intakeBack" style="background:none;border:none;color:#C5A258;font-size:22px;cursor:pointer;padding:4px 8px;">←</button>
         <div>
           <h2 style="color:#C5A258;font-size:18px;margin:0;">分荷判定 撮影</h2>
-          <p style="color:#888;font-size:12px;margin:0;">仕入先: ${escapeHtml(srcLabel)}</p>
+          <p style="color:#5a6272;font-size:12px;margin:0;">仕入先: ${escapeHtml(srcLabel)}</p>
         </div>
       </div>
 
       <!-- 撮影エリア -->
-      <div id="captureArea" style="background:#1a1a2e;border:2px dashed #333;border-radius:16px;
+      <div id="captureArea" style="background:#ffffff;border:2px dashed #dde0e6;border-radius:16px;
            padding:${state.capturePhotos.length > 0 ? '20px' : '40px'} 20px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color 0.2s;">
         ${state.capturePhotos.length > 0
           ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;">
                ${state.capturePhotos.map((p, i) => `
                  <div style="position:relative;flex-shrink:0;">
-                   <img src="${p}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #333;">
+                   <img src="${p}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #dde0e6;">
                    <div style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.6);color:#C5A258;font-size:9px;padding:1px 4px;border-radius:4px;">${i + 1}</div>
-                   <button class="photo-del" data-idx="${i}" style="position:absolute;top:2px;right:2px;background:#f44336;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:20px;padding:0;">✕</button>
+                   <button class="photo-del" data-idx="${i}" style="position:absolute;top:2px;right:2px;background:#CE2029;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:20px;padding:0;">✕</button>
                  </div>
                `).join('')}
              </div>
-             <p style="color:#aaa;font-size:13px;">タップして追加撮影（${state.capturePhotos.length}枚撮影済み）</p>`
+             <p style="color:#5a6272;font-size:13px;">タップして追加撮影（${state.capturePhotos.length}枚撮影済み）</p>`
           : `<div style="font-size:48px;margin-bottom:12px;">📷</div>
-             <p style="color:#aaa;font-size:15px;font-weight:bold;">タップして撮影</p>
-             <p style="color:#666;font-size:12px;">商品全体が映るように撮ってください</p>`
+             <p style="color:#5a6272;font-size:15px;font-weight:bold;">タップして撮影</p>
+             <p style="color:#8a8a8a;font-size:12px;">商品全体が映るように撮ってください</p>`
         }
       </div>
 
       ${isBook ? `
       <!-- バーコードスキャン（書籍用） -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;">
-        <p style="color:#aaa;font-size:13px;margin-bottom:8px;">📖 書籍の場合: バーコード / ISBN</p>
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:16px;">
+        <p style="color:#5a6272;font-size:13px;margin-bottom:8px;">📖 書籍の場合: バーコード / ISBN</p>
         <div style="display:flex;gap:8px;">
           <input id="barcodeInput" type="text" inputmode="numeric" placeholder="ISBN / バーコード番号"
             value="${escapeHtml(state.barcode)}"
-            style="flex:1;background:#111;border:1px solid #333;border-radius:8px;color:#e0e0e0;
+            style="flex:1;background:#f5f5f5;border:1px solid #dde0e6;border-radius:8px;color:#1C2541;
                    padding:10px 12px;font-size:14px;outline:none;">
-          <button id="barcodeScan" style="background:#333;border:none;border-radius:8px;color:#C5A258;
+          <button id="barcodeScan" style="background:#dde0e6;border:none;border-radius:8px;color:#C5A258;
                   padding:10px 14px;font-size:18px;cursor:pointer;">📸</button>
         </div>
       </div>
@@ -296,7 +296,7 @@ function renderCapture() {
                border:none;cursor:pointer;transition:all 0.2s;
                ${state.capturePhotos.length > 0
                  ? 'background:#C5A258;color:#000;'
-                 : 'background:#333;color:#666;cursor:not-allowed;'}">
+                 : 'background:#dde0e6;color:#8a8a8a;cursor:not-allowed;'}">
         AI判定を実行${state.capturePhotos.length > 1 ? `（${state.capturePhotos.length}枚）` : ''}
       </button>
     </div>
@@ -469,7 +469,7 @@ function renderResult() {
   if (!r) { state.step = 'capture'; render(); return; }
 
   const confidence = r.confidence || 0;
-  const confidenceColor = confidence >= 0.8 ? '#4caf50' : confidence >= 0.6 ? '#ff9800' : '#f44336';
+  const confidenceColor = confidence >= 0.8 ? '#006B3F' : confidence >= 0.6 ? '#C5A258' : '#CE2029';
   const confidencePct = Math.round(confidence * 100);
 
   const needsApproval = checkNeedsApproval(r);
@@ -485,31 +485,31 @@ function renderResult() {
 
       <!-- 判定写真サムネイル -->
       <div style="display:flex;gap:12px;margin-bottom:16px;">
-        ${state.judgmentPhoto ? `<img src="${state.judgmentPhoto}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #333;">` : ''}
+        ${state.judgmentPhoto ? `<img src="${state.judgmentPhoto}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #dde0e6;">` : ''}
         <div style="flex:1;">
           <input type="text" id="editProductName" value="${escapeHtml(r.productName || '')}" placeholder="商品名"
-            style="background:#0d1117;border:1px solid #333;border-radius:6px;color:#e0e0e0;padding:6px 8px;font-size:15px;font-weight:bold;width:100%;outline:none;box-sizing:border-box;">
+            style="background:#ffffff;border:1px solid #dde0e6;border-radius:6px;color:#1C2541;padding:6px 8px;font-size:15px;font-weight:bold;width:100%;outline:none;box-sizing:border-box;">
           <input type="text" id="editMaker" value="${escapeHtml(r.maker || '')}" placeholder="メーカー名"
-            style="background:#0d1117;border:1px solid #333;border-radius:6px;color:#aaa;padding:4px 8px;font-size:13px;width:100%;outline:none;margin-top:4px;box-sizing:border-box;">
+            style="background:#ffffff;border:1px solid #dde0e6;border-radius:6px;color:#5a6272;padding:4px 8px;font-size:13px;width:100%;outline:none;margin-top:4px;box-sizing:border-box;">
           <input type="text" id="editModelNumber" value="${escapeHtml(r.modelNumber || '')}" placeholder="品番・型式"
-            style="background:#0d1117;border:1px solid #333;border-radius:6px;color:#aaa;padding:4px 8px;font-size:13px;width:100%;outline:none;margin-top:4px;box-sizing:border-box;">
-          <p style="color:#888;font-size:12px;margin:4px 0 0;">${escapeHtml(r.category || '')}</p>
+            style="background:#ffffff;border:1px solid #dde0e6;border-radius:6px;color:#5a6272;padding:4px 8px;font-size:13px;width:100%;outline:none;margin-top:4px;box-sizing:border-box;">
+          <p style="color:#5a6272;font-size:12px;margin:4px 0 0;">${escapeHtml(r.category || '')}</p>
         </div>
       </div>
 
       <!-- 信頼度バー -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:12px 16px;margin-bottom:12px;">
+      <div style="background:#ffffff;border-radius:12px;padding:12px 16px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <span style="color:#888;font-size:12px;">AI信頼度</span>
+          <span style="color:#5a6272;font-size:12px;">AI信頼度</span>
           <span style="color:${confidenceColor};font-size:14px;font-weight:bold;">${confidencePct}%</span>
         </div>
-        <div style="background:#222;border-radius:4px;height:6px;overflow:hidden;">
+        <div style="background:#e8e5dd;border-radius:4px;height:6px;overflow:hidden;">
           <div style="background:${confidenceColor};height:100%;width:${confidencePct}%;border-radius:4px;transition:width 0.5s;"></div>
         </div>
       </div>
 
       <!-- 詳細情報 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;">
         <table style="width:100%;border-collapse:collapse;">
           ${resultRow('状態', `<span style="color:${condColor(r.condition)};font-weight:bold;">${escapeHtml(r.condition || '—')}</span> ${escapeHtml(condLabel)}`)}
           ${resultRow('販路', escapeHtml(channelInfo?.name || r.channel || '—'))}
@@ -522,53 +522,53 @@ function renderResult() {
 
       <!-- AI説明 -->
       ${r.explanation ? `
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
-        <p style="color:#888;font-size:11px;margin-bottom:4px;">AIコメント</p>
-        <p style="color:#ccc;font-size:13px;line-height:1.5;margin:0;">${escapeHtml(r.explanation)}</p>
+      <div style="background:#ffffff;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <p style="color:#5a6272;font-size:11px;margin-bottom:4px;">AIコメント</p>
+        <p style="color:#4a4a5a;font-size:13px;line-height:1.5;margin:0;">${escapeHtml(r.explanation)}</p>
       </div>
       ` : ''}
 
       <!-- 動作確認 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
-        <p style="color:#888;font-size:11px;margin-bottom:8px;">動作確認（該当する場合のみ）</p>
+      <div style="background:#ffffff;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <p style="color:#5a6272;font-size:11px;margin-bottom:8px;">動作確認（該当する場合のみ）</p>
         <div style="display:flex;flex-wrap:wrap;gap:6px;" id="operationBtns">
           ${CONFIG.OPERATION_STATUS.map(s => `
             <button class="op-btn" data-op="${s.id}"
               style="padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;
-              border:1px solid ${state.operationStatus === s.id ? '#C5A258' : '#333'};
+              border:1px solid ${state.operationStatus === s.id ? '#C5A258' : '#dde0e6'};
               background:${state.operationStatus === s.id ? '#C5A258' : 'transparent'};
-              color:${state.operationStatus === s.id ? '#000' : '#e0e0e0'};">
+              color:${state.operationStatus === s.id ? '#000' : '#1C2541'};">
               ${s.icon} ${s.label}
             </button>
           `).join('')}
         </div>
         ${state.operationStatus === 'defective' ? `
           <input type="text" id="operationNote" placeholder="不良内容を入力" value="${escapeHtml(state.operationNote)}"
-            style="width:100%;margin-top:8px;padding:10px 12px;border-radius:8px;border:1px solid #333;background:#0d1117;color:#e0e0e0;font-size:14px;outline:none;box-sizing:border-box;">
+            style="width:100%;margin-top:8px;padding:10px 12px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:14px;outline:none;box-sizing:border-box;">
         ` : ''}
       </div>
 
       <!-- 委託販売: 手数料率 -->
       ${getSourceLabel(state.sourceType) === '渡辺質店' ? `
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
-        <p style="color:#888;font-size:11px;margin-bottom:8px;">手数料率（テイクバック取り分）</p>
+      <div style="background:#ffffff;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <p style="color:#5a6272;font-size:11px;margin-bottom:8px;">手数料率（テイクバック取り分）</p>
         <div style="display:flex;gap:8px;flex-wrap:wrap;">
-          ${[20,30,40,50].map(r => `<button class="commission-btn" data-rate="${r}" style="padding:8px 16px;border-radius:8px;border:1px solid ${state.commissionRate === r ? '#C5A258' : '#333'};background:${state.commissionRate === r ? '#C5A258' : 'transparent'};color:${state.commissionRate === r ? '#000' : '#e0e0e0'};font-size:14px;cursor:pointer;">${r}%</button>`).join('')}
+          ${[20,30,40,50].map(r => `<button class="commission-btn" data-rate="${r}" style="padding:8px 16px;border-radius:8px;border:1px solid ${state.commissionRate === r ? '#C5A258' : '#dde0e6'};background:${state.commissionRate === r ? '#C5A258' : 'transparent'};color:${state.commissionRate === r ? '#000' : '#1C2541'};font-size:14px;cursor:pointer;">${r}%</button>`).join('')}
         </div>
       </div>
       ` : ''}
       ${getSourceLabel(state.sourceType) === 'ビッグスポーツ' ? `
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
-        <p style="color:#888;font-size:11px;">手数料率</p>
+      <div style="background:#ffffff;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <p style="color:#5a6272;font-size:11px;">手数料率</p>
         <p style="color:#C5A258;font-size:16px;font-weight:bold;">50:50（固定）</p>
       </div>
       ` : ''}
 
       <!-- 浅野承認が必要な場合の警告 -->
       ${needsApproval ? `
-      <div style="background:#f4433622;border:1px solid #f44336;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
-        <p style="color:#f44336;font-size:13px;font-weight:bold;margin-bottom:4px;">⚠ 浅野さんの確認が必要</p>
-        <p style="color:#ffcdd2;font-size:12px;margin:0;">${escapeHtml(needsApproval)}</p>
+      <div style="background:#CE202922;border:1px solid #CE2029;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <p style="color:#CE2029;font-size:13px;font-weight:bold;margin-bottom:4px;">⚠ 浅野さんの確認が必要</p>
+        <p style="color:#CE2029;font-size:12px;margin:0;">${escapeHtml(needsApproval)}</p>
       </div>
       ` : ''}
 
@@ -587,13 +587,13 @@ function renderResult() {
           </button>
           <button id="resultRetry"
             style="flex:1;padding:14px;border-radius:12px;font-size:14px;font-weight:bold;
-                   border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;">
+                   border:1px solid #ccc;background:transparent;color:#5a6272;cursor:pointer;">
             再判定
           </button>
         </div>
         <button id="resultReshoot"
           style="width:100%;padding:12px;border-radius:12px;font-size:13px;
-                 border:none;background:#222;color:#888;cursor:pointer;">
+                 border:none;background:#e8e5dd;color:#5a6272;cursor:pointer;">
           撮り直す
         </button>
       </div>
@@ -626,9 +626,9 @@ function renderResult() {
       // ボタン表示更新
       containerRef.querySelectorAll('.commission-btn').forEach(b => {
         const isActive = parseInt(b.dataset.rate) === state.commissionRate;
-        b.style.borderColor = isActive ? '#C5A258' : '#333';
+        b.style.borderColor = isActive ? '#C5A258' : '#dde0e6';
         b.style.background = isActive ? '#C5A258' : 'transparent';
-        b.style.color = isActive ? '#000' : '#e0e0e0';
+        b.style.color = isActive ? '#000' : '#1C2541';
       });
     });
     addTouchFeedback(btn);
@@ -663,14 +663,14 @@ function renderResult() {
 function resultRow(label, value) {
   return `
     <tr>
-      <td style="color:#888;font-size:12px;padding:6px 0;white-space:nowrap;vertical-align:top;width:80px;">${label}</td>
-      <td style="color:#e0e0e0;font-size:14px;padding:6px 0;">${value}</td>
+      <td style="color:#5a6272;font-size:12px;padding:6px 0;white-space:nowrap;vertical-align:top;width:80px;">${label}</td>
+      <td style="color:#1C2541;font-size:14px;padding:6px 0;">${value}</td>
     </tr>
   `;
 }
 
 function condColor(cond) {
-  const map = { S: '#4caf50', A: '#8bc34a', B: '#ff9800', C: '#f44336', D: '#9e9e9e' };
+  const map = { S: '#006B3F', A: '#8bc34a', B: '#C5A258', C: '#CE2029', D: '#9e9e9e' };
   return map[cond] || '#888';
 }
 
@@ -790,15 +790,15 @@ async function handleConfirm(needsApproval) {
 function handleConsult() {
   // 相談理由入力モーダル
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(28,37,65,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
   overlay.innerHTML = `
-    <div style="background:#1a1a2e;border-radius:16px;padding:24px;max-width:360px;width:100%;">
+    <div style="background:#ffffff;border-radius:16px;padding:24px;max-width:360px;width:100%;">
       <h3 style="color:#C5A258;font-size:16px;margin-bottom:12px;">相談メモ</h3>
       <textarea id="consultText" rows="4" placeholder="迷っている点、確認したい内容を記入..."
-        style="width:100%;background:#111;border:1px solid #333;border-radius:8px;color:#e0e0e0;
+        style="width:100%;background:#f5f5f5;border:1px solid #dde0e6;border-radius:8px;color:#1C2541;
                padding:12px;font-size:14px;resize:none;outline:none;box-sizing:border-box;"></textarea>
       <div style="display:flex;gap:10px;margin-top:16px;">
-        <button id="consultCancel" style="flex:1;padding:12px;border-radius:8px;background:#333;color:#ccc;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
+        <button id="consultCancel" style="flex:1;padding:12px;border-radius:8px;background:#dde0e6;color:#4a4a5a;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
         <button id="consultSubmit" style="flex:1;padding:12px;border-radius:8px;background:#C5A258;color:#000;border:none;font-size:14px;font-weight:bold;cursor:pointer;">相談として登録</button>
       </div>
     </div>
@@ -889,13 +889,13 @@ function renderPhotoStep() {
     const hasPhoto = !!state.photos[slot.key];
     return `
       <div class="photo-slot" data-key="${slot.key}"
-        style="background:#1a1a2e;border:${hasPhoto ? '2px solid #C5A258' : '1px dashed #444'};
+        style="background:#ffffff;border:${hasPhoto ? '2px solid #C5A258' : '1px dashed #444'};
                border-radius:12px;overflow:hidden;cursor:pointer;transition:all 0.15s;aspect-ratio:1;">
         ${hasPhoto
           ? `<img src="${state.photos[slot.key]}" style="width:100%;height:100%;object-fit:cover;">`
           : `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:8px;">
-               <span style="font-size:24px;color:#555;">📷</span>
-               <span style="font-size:11px;color:#666;margin-top:4px;">${escapeHtml(slot.label)}</span>
+               <span style="font-size:24px;color:#8a8a8a;">📷</span>
+               <span style="font-size:11px;color:#8a8a8a;margin-top:4px;">${escapeHtml(slot.label)}</span>
              </div>`
         }
       </div>
@@ -910,25 +910,25 @@ function renderPhotoStep() {
       </div>
 
       <!-- 管理番号 & 商品名 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+      <div style="background:#ffffff;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div>
             <p style="color:#C5A258;font-size:20px;font-weight:bold;margin:0;">${escapeHtml(state.mgmtNum)}</p>
-            <p style="color:#aaa;font-size:13px;margin:0;">${escapeHtml(r.productName || '')} ${escapeHtml(r.maker || '')}</p>
+            <p style="color:#5a6272;font-size:13px;margin:0;">${escapeHtml(r.productName || '')} ${escapeHtml(r.maker || '')}</p>
           </div>
           ${statusBadge(CONFIG.STATUS.JUDGED)}
         </div>
       </div>
 
       <!-- 写真グリッド -->
-      <p style="color:#888;font-size:12px;margin-bottom:8px;">写真（正面は必須）</p>
+      <p style="color:#5a6272;font-size:12px;margin-bottom:8px;">写真（正面は必須）</p>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;">
         ${photoCards}
       </div>
 
       <!-- 計測入力 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;">
-        <p style="color:#888;font-size:12px;margin-bottom:10px;">サイズ計測</p>
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:16px;">
+        <p style="color:#5a6272;font-size:12px;margin-bottom:10px;">サイズ計測</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           ${measureInput('width', '横幅', 'cm')}
           ${measureInput('height', '高さ', 'cm')}
@@ -945,7 +945,7 @@ function renderPhotoStep() {
       </button>
       <button id="photoSkipStorage"
         style="width:100%;padding:12px;border-radius:12px;font-size:13px;margin-top:8px;
-               border:none;background:#222;color:#888;cursor:pointer;">
+               border:none;background:#e8e5dd;color:#5a6272;cursor:pointer;">
         保管場所はあとで設定
       </button>
     </div>
@@ -1011,10 +1011,10 @@ function renderPhotoStep() {
 function measureInput(field, label, unit) {
   return `
     <div style="position:relative;">
-      <label style="font-size:11px;color:#888;display:block;margin-bottom:3px;">${label}</label>
+      <label style="font-size:11px;color:#5a6272;display:block;margin-bottom:3px;">${label}</label>
       <input class="measure-input" data-field="${field}" type="number" inputmode="decimal" step="0.1"
         placeholder="0" value="${state.measurements[field] || ''}"
-        style="width:100%;background:#111;border:1px solid #333;border-radius:8px;color:#e0e0e0;
+        style="width:100%;background:#f5f5f5;border:1px solid #dde0e6;border-radius:8px;color:#1C2541;
                padding:10px 40px 10px 12px;font-size:14px;outline:none;box-sizing:border-box;">
       <span style="position:absolute;right:10px;bottom:10px;color:#C5A258;font-size:13px;font-weight:bold;">${unit}</span>
     </div>
@@ -1065,13 +1065,13 @@ function renderStorageStep() {
       </div>
 
       <!-- 管理番号 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
+      <div style="background:#ffffff;border-radius:12px;padding:14px 16px;margin-bottom:16px;">
         <p style="color:#C5A258;font-size:20px;font-weight:bold;margin:0;">${escapeHtml(state.mgmtNum)}</p>
-        <p style="color:#aaa;font-size:13px;margin:0;">${escapeHtml(r.productName || '')} ${escapeHtml(r.maker || '')}</p>
+        <p style="color:#5a6272;font-size:13px;margin:0;">${escapeHtml(r.productName || '')} ${escapeHtml(r.maker || '')}</p>
       </div>
 
       <!-- 拠点選択 -->
-      <p style="color:#888;font-size:12px;margin-bottom:8px;">拠点</p>
+      <p style="color:#5a6272;font-size:12px;margin-bottom:8px;">拠点</p>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
         ${STORAGE_BASES.map(b => `
           <button class="base-btn" data-id="${b.id}"
@@ -1079,7 +1079,7 @@ function renderStorageStep() {
                    transition:all 0.15s;border:none;
                    ${selectedBase === b.id
                      ? 'background:#C5A258;color:#000;'
-                     : 'background:#1a1a2e;color:#e0e0e0;border:1px solid #333;'}">
+                     : 'background:#ffffff;color:#1C2541;border:1px solid #dde0e6;'}">
             ${escapeHtml(b.label)}
           </button>
         `).join('')}
@@ -1087,14 +1087,14 @@ function renderStorageStep() {
 
       <!-- エリア選択 -->
       ${selectedBase ? `
-      <p style="color:#888;font-size:12px;margin-bottom:8px;">エリア</p>
+      <p style="color:#5a6272;font-size:12px;margin-bottom:8px;">エリア</p>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;">
         ${areas.map(a => `
           <button class="area-btn" data-area="${a}"
             style="padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;transition:all 0.15s;border:none;
                    ${state.storageArea === a
                      ? 'background:#C5A258;color:#000;font-weight:bold;'
-                     : 'background:#1a1a2e;color:#ccc;border:1px solid #333;'}">
+                     : 'background:#ffffff;color:#4a4a5a;border:1px solid #dde0e6;'}">
             ${escapeHtml(a)}
           </button>
         `).join('')}
@@ -1102,11 +1102,11 @@ function renderStorageStep() {
       ` : ''}
 
       <!-- フリー入力 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:20px;">
-        <p style="color:#888;font-size:12px;margin-bottom:8px;">補足メモ（棚番号・段など）</p>
+      <div style="background:#ffffff;border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+        <p style="color:#5a6272;font-size:12px;margin-bottom:8px;">補足メモ（棚番号・段など）</p>
         <input id="storageMemo" type="text" placeholder="例: 3段目 右端"
           value="${escapeHtml(state.storageMemo)}"
-          style="width:100%;background:#111;border:1px solid #333;border-radius:8px;color:#e0e0e0;
+          style="width:100%;background:#f5f5f5;border:1px solid #dde0e6;border-radius:8px;color:#1C2541;
                  padding:10px 12px;font-size:14px;outline:none;box-sizing:border-box;">
       </div>
 
@@ -1116,7 +1116,7 @@ function renderStorageStep() {
                border:none;cursor:pointer;transition:all 0.15s;
                ${selectedBase && state.storageArea
                  ? 'background:#C5A258;color:#000;'
-                 : 'background:#333;color:#666;'}">
+                 : 'background:#dde0e6;color:#8a8a8a;'}">
         保管場所を確定
       </button>
     </div>
@@ -1286,11 +1286,11 @@ function renderDone() {
         <h2 style="color:#C5A258;font-size:20px;margin-bottom:4px;">
           ${isConsult ? '相談として登録完了' : '分荷判定完了'}
         </h2>
-        <p style="color:#888;font-size:13px;">次の商品に進めます</p>
+        <p style="color:#5a6272;font-size:13px;">次の商品に進めます</p>
       </div>
 
       <!-- 登録内容サマリ -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:16px;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:16px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <p style="color:#C5A258;font-size:22px;font-weight:bold;margin:0;">${escapeHtml(state.mgmtNum || '—')}</p>
           ${isConsult ? statusBadge(CONFIG.STATUS.CONSULT) : statusBadge(CONFIG.STATUS.JUDGED)}
@@ -1319,7 +1319,7 @@ function renderDone() {
       </button>
       <button id="doneSetStorage"
         style="width:100%;padding:12px;border-radius:12px;font-size:13px;
-               border:none;background:#222;color:#888;cursor:pointer;">
+               border:none;background:#e8e5dd;color:#5a6272;cursor:pointer;">
         保管場所を設定/変更
       </button>
     </div>
@@ -1370,20 +1370,20 @@ function renderBulkImport() {
         <button id="bulkBack" style="background:none;border:none;color:#C5A258;font-size:22px;cursor:pointer;padding:4px 8px;">←</button>
         <div>
           <h2 style="color:#C5A258;font-size:18px;margin:0;">渡辺質店 一括登録</h2>
-          <p style="color:#888;font-size:12px;margin:0;">手書きシートから一括読み取り</p>
+          <p style="color:#5a6272;font-size:12px;margin:0;">手書きシートから一括読み取り</p>
         </div>
       </div>
 
       ${!hasItems ? `
       <!-- 撮影前 -->
-      <div id="bulkCaptureArea" style="background:#1a1a2e;border:2px dashed #C5A258;border-radius:16px;
+      <div id="bulkCaptureArea" style="background:#ffffff;border:2px dashed #C5A258;border-radius:16px;
            padding:48px 20px;text-align:center;cursor:pointer;margin-bottom:16px;">
         ${state.bulkPhoto
           ? `<img src="${state.bulkPhoto}" style="max-width:100%;max-height:300px;border-radius:8px;margin-bottom:12px;">
-             <p style="color:#aaa;font-size:13px;">タップして撮り直し</p>`
+             <p style="color:#5a6272;font-size:13px;">タップして撮り直し</p>`
           : `<div style="font-size:48px;margin-bottom:12px;">📋</div>
              <p style="color:#C5A258;font-size:16px;font-weight:bold;">手書きシートを撮影</p>
-             <p style="color:#666;font-size:13px;">渡辺質店の商品リストシートを<br>全体が映るように撮ってください</p>`
+             <p style="color:#8a8a8a;font-size:13px;">渡辺質店の商品リストシートを<br>全体が映るように撮ってください</p>`
         }
       </div>
       ${state.bulkPhoto ? `
@@ -1393,18 +1393,18 @@ function renderBulkImport() {
       </button>
       ` : ''}
       <button id="bulkManualAdd" style="width:100%;padding:14px;border-radius:12px;font-size:14px;
-             border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;">
+             border:1px solid #ccc;background:transparent;color:#5a6272;cursor:pointer;">
         ✏️ 手動で商品を追加
       </button>
       ` : `
       <!-- 解析結果テーブル -->
       ${state.bulkPhoto ? `
       <div style="margin-bottom:12px;">
-        <img src="${state.bulkPhoto}" style="width:80px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #333;">
+        <img src="${state.bulkPhoto}" style="width:80px;height:60px;object-fit:cover;border-radius:8px;border:1px solid #dde0e6;">
       </div>
       ` : ''}
-      <div style="background:#1a1a2e;border-radius:12px;padding:12px;margin-bottom:12px;">
-        <p style="color:#888;font-size:12px;margin-bottom:4px;">読み取り結果</p>
+      <div style="background:#ffffff;border-radius:12px;padding:12px;margin-bottom:12px;">
+        <p style="color:#5a6272;font-size:12px;margin-bottom:4px;">読み取り結果</p>
         <p style="color:#C5A258;font-size:16px;font-weight:bold;margin:0;">${items.length}件 検出（${includedCount}件 選択中）</p>
       </div>
 
@@ -1412,13 +1412,13 @@ function renderBulkImport() {
         <table style="width:100%;border-collapse:collapse;min-width:500px;">
           <thead>
             <tr style="border-bottom:1px solid #333;">
-              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:36px;">✓</th>
-              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:left;">品番</th>
-              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:left;">商品名</th>
-              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:left;width:100px;">備考</th>
-              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:right;width:80px;">希望価格</th>
-              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:60px;">手数料</th>
-              <th style="color:#888;font-size:11px;padding:8px 4px;text-align:center;width:30px;"></th>
+              <th style="color:#5a6272;font-size:11px;padding:8px 4px;text-align:center;width:36px;">✓</th>
+              <th style="color:#5a6272;font-size:11px;padding:8px 4px;text-align:left;">品番</th>
+              <th style="color:#5a6272;font-size:11px;padding:8px 4px;text-align:left;">商品名</th>
+              <th style="color:#5a6272;font-size:11px;padding:8px 4px;text-align:left;width:100px;">備考</th>
+              <th style="color:#5a6272;font-size:11px;padding:8px 4px;text-align:right;width:80px;">希望価格</th>
+              <th style="color:#5a6272;font-size:11px;padding:8px 4px;text-align:center;width:60px;">手数料</th>
+              <th style="color:#5a6272;font-size:11px;padding:8px 4px;text-align:center;width:30px;"></th>
             </tr>
           </thead>
           <tbody>
@@ -1428,32 +1428,32 @@ function renderBulkImport() {
                 <input type="checkbox" class="bulk-check" data-idx="${i}" ${item.included ? 'checked' : ''}
                   style="width:18px;height:18px;accent-color:#C5A258;">
               </td>
-              <td style="padding:8px 4px;color:#aaa;font-size:13px;">${escapeHtml(item.number)}</td>
+              <td style="padding:8px 4px;color:#5a6272;font-size:13px;">${escapeHtml(item.number)}</td>
               <td style="padding:8px 4px;">
                 <input type="text" class="bulk-name" data-idx="${i}" value="${escapeHtml(item.name + (item.detail ? ' ' + item.detail : ''))}"
-                  style="background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;
+                  style="background:#f5f5f5;border:1px solid #dde0e6;border-radius:6px;color:#1C2541;
                          padding:6px 8px;font-size:13px;width:100%;box-sizing:border-box;outline:none;">
               </td>
               <td style="padding:8px 4px;">
                 <input type="text" class="bulk-remarks" data-idx="${i}" value="${escapeHtml(item.remarks || '')}"
-                  style="background:#111;border:1px solid #333;border-radius:6px;color:#aaa;
+                  style="background:#f5f5f5;border:1px solid #dde0e6;border-radius:6px;color:#5a6272;
                          padding:6px 8px;font-size:12px;width:100%;box-sizing:border-box;outline:none;"
                   placeholder="備考">
               </td>
               <td style="padding:8px 4px;">
                 <input type="number" class="bulk-price" data-idx="${i}" value="${item.price}"
-                  style="background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;
+                  style="background:#f5f5f5;border:1px solid #dde0e6;border-radius:6px;color:#1C2541;
                          padding:6px 8px;font-size:13px;width:70px;text-align:right;outline:none;">
               </td>
               <td style="padding:8px 4px;text-align:center;">
                 <select class="bulk-rate" data-idx="${i}"
-                  style="background:#111;border:1px solid #333;border-radius:6px;color:#e0e0e0;
+                  style="background:#f5f5f5;border:1px solid #dde0e6;border-radius:6px;color:#1C2541;
                          padding:6px 4px;font-size:12px;outline:none;">
                   ${[20,30,40,50].map(r => `<option value="${r}" ${item.commissionRate === r ? 'selected' : ''}>${r}%</option>`).join('')}
                 </select>
               </td>
               <td style="padding:8px 4px;text-align:center;">
-                <button class="bulk-del" data-idx="${i}" style="background:none;border:none;color:#f44;font-size:16px;cursor:pointer;padding:2px 6px;">✕</button>
+                <button class="bulk-del" data-idx="${i}" style="background:none;border:none;color:#CE2029;font-size:16px;cursor:pointer;padding:2px 6px;">✕</button>
               </td>
             </tr>
             `).join('')}
@@ -1467,11 +1467,11 @@ function renderBulkImport() {
           📷 追加撮影
         </button>
         <button id="bulkManualAdd" style="flex:1;padding:10px;border-radius:12px;font-size:12px;
-               border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;">
+               border:1px solid #ccc;background:transparent;color:#5a6272;cursor:pointer;">
           ✏️ 手動追加
         </button>
         <button id="bulkRescan" style="flex:1;padding:10px;border-radius:12px;font-size:12px;
-               border:1px solid #555;background:transparent;color:#aaa;cursor:pointer;">
+               border:1px solid #ccc;background:transparent;color:#5a6272;cursor:pointer;">
           🔄 最初から
         </button>
       </div>
@@ -1758,15 +1758,15 @@ function renderDoneBulk() {
       <div style="text-align:center;padding:32px 0 24px;">
         <div style="font-size:48px;margin-bottom:12px;">${result.errors > 0 ? '⚠️' : '✅'}</div>
         <h2 style="color:#C5A258;font-size:20px;margin-bottom:8px;">一括登録完了</h2>
-        <p style="color:#e0e0e0;font-size:18px;font-weight:bold;margin-bottom:4px;">
+        <p style="color:#1C2541;font-size:18px;font-weight:bold;margin-bottom:4px;">
           ${result.success} / ${result.total} 件 登録成功
         </p>
         ${result.errors > 0 ? `
-        <p style="color:#f44336;font-size:14px;">${result.errors}件 エラーあり</p>
+        <p style="color:#CE2029;font-size:14px;">${result.errors}件 エラーあり</p>
         ` : ''}
       </div>
 
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:20px;">
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:20px;">
         <table style="width:100%;border-collapse:collapse;">
           ${resultRow('仕入先', '渡辺質店')}
           ${resultRow('登録方法', '一括登録（シート読み取り）')}
@@ -1836,18 +1836,18 @@ async function renderBulkPhotoLink() {
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
         <button id="photoLinkBack" style="background:none;border:none;color:#C5A258;font-size:22px;cursor:pointer;">←</button>
         <h2 style="color:#C5A258;font-size:18px;margin:0;">写真紐付け</h2>
-        <span style="color:#888;font-size:13px;margin-left:auto;">写真済み ${withPhoto.length}/${watanabeItems.length}件</span>
+        <span style="color:#5a6272;font-size:13px;margin-left:auto;">写真済み ${withPhoto.length}/${watanabeItems.length}件</span>
       </div>
 
       <!-- 品番で検索 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;">
-        <p style="color:#888;font-size:12px;margin-bottom:8px;">品番で商品を探す</p>
+      <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;">
+        <p style="color:#5a6272;font-size:12px;margin-bottom:8px;">品番で商品を探す</p>
         <div style="display:flex;gap:8px;">
           <input id="photoLinkSearch" type="text" inputmode="numeric" placeholder="品番を入力（例: 821）"
-            style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid #333;background:#0d1117;color:#e0e0e0;font-size:15px;outline:none;">
+            style="flex:1;padding:10px 12px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:15px;outline:none;">
           <button id="photoLinkSearchBtn" style="padding:10px 16px;border-radius:8px;background:#C5A258;color:#000;border:none;font-weight:bold;cursor:pointer;">検索</button>
         </div>
-        <button id="photoLinkOcrBtn" style="width:100%;margin-top:8px;padding:10px;border-radius:8px;border:1px solid #555;background:transparent;color:#aaa;font-size:13px;cursor:pointer;">
+        <button id="photoLinkOcrBtn" style="width:100%;margin-top:8px;padding:10px;border-radius:8px;border:1px solid #ccc;background:transparent;color:#5a6272;font-size:13px;cursor:pointer;">
           📷 品番タグを撮影して検索
         </button>
       </div>
@@ -1857,28 +1857,28 @@ async function renderBulkPhotoLink() {
 
       <!-- 未紐付けリスト -->
       <div style="margin-top:16px;">
-        <p style="color:#888;font-size:12px;margin-bottom:8px;">写真未登録（${withoutPhoto.length}件）</p>
+        <p style="color:#5a6272;font-size:12px;margin-bottom:8px;">写真未登録（${withoutPhoto.length}件）</p>
         <div id="photoLinkList">
           ${withoutPhoto.map(item => `
             <div class="photo-link-item" data-num="${escapeHtml(item.partner_item_number || '')}" data-mgmt="${escapeHtml(item.mgmt_num)}"
-              style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#1a1a2e;border-radius:8px;margin-bottom:6px;cursor:pointer;border:1px solid #222;">
-              <span style="color:#f44336;font-size:16px;">❌</span>
+              style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#ffffff;border-radius:8px;margin-bottom:6px;cursor:pointer;border:1px solid #222;">
+              <span style="color:#CE2029;font-size:16px;">❌</span>
               <div style="flex:1;">
                 <span style="color:#C5A258;font-size:12px;">${escapeHtml(item.partner_item_number || item.mgmt_num)}</span>
-                <div style="font-size:13px;color:#e0e0e0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.product_name)}</div>
+                <div style="font-size:13px;color:#1C2541;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.product_name)}</div>
               </div>
-              <span style="color:#888;font-size:12px;">${item.start_price ? '\u00a5' + item.start_price.toLocaleString() : ''}</span>
+              <span style="color:#5a6272;font-size:12px;">${item.start_price ? '\u00a5' + item.start_price.toLocaleString() : ''}</span>
             </div>
           `).join('')}
           ${withPhoto.length > 0 ? `
-            <p style="color:#666;font-size:11px;margin-top:12px;">写真登録済み（${withPhoto.length}件）</p>
+            <p style="color:#8a8a8a;font-size:11px;margin-top:12px;">写真登録済み（${withPhoto.length}件）</p>
             ${withPhoto.slice(0, 5).map(item => `
-              <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#0d1117;border-radius:8px;margin-bottom:4px;opacity:0.5;">
-                <span style="color:#4caf50;font-size:16px;">✅</span>
-                <span style="font-size:12px;color:#888;">${escapeHtml(item.partner_item_number || item.mgmt_num)} ${escapeHtml(item.product_name).slice(0,20)}</span>
+              <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:#ffffff;border-radius:8px;margin-bottom:4px;opacity:0.5;">
+                <span style="color:#006B3F;font-size:16px;">✅</span>
+                <span style="font-size:12px;color:#5a6272;">${escapeHtml(item.partner_item_number || item.mgmt_num)} ${escapeHtml(item.product_name).slice(0,20)}</span>
               </div>
             `).join('')}
-            ${withPhoto.length > 5 ? `<p style="color:#555;font-size:11px;text-align:center;">他 ${withPhoto.length - 5}件</p>` : ''}
+            ${withPhoto.length > 5 ? `<p style="color:#8a8a8a;font-size:11px;text-align:center;">他 ${withPhoto.length - 5}件</p>` : ''}
           ` : ''}
         </div>
       </div>
@@ -1977,15 +1977,15 @@ function showPhotoLinkItem(searchNum, allItems) {
   const hasPhoto = item.main_photo_url || item.drive_url;
   resultDiv.style.display = 'block';
   resultDiv.innerHTML = `
-    <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #C5A258;">
+    <div style="background:#ffffff;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #C5A258;">
       <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
         <span style="color:#C5A258;font-weight:bold;">品番: ${escapeHtml(item.partner_item_number || searchNum)}</span>
-        <span style="color:#888;font-size:12px;">${escapeHtml(item.mgmt_num)}</span>
+        <span style="color:#5a6272;font-size:12px;">${escapeHtml(item.mgmt_num)}</span>
       </div>
-      <div style="font-size:15px;color:#e0e0e0;font-weight:bold;margin-bottom:4px;">${escapeHtml(item.product_name)}</div>
-      <div style="font-size:13px;color:#888;margin-bottom:12px;">希望価格: \u00a5${(item.start_price || 0).toLocaleString()}</div>
+      <div style="font-size:15px;color:#1C2541;font-weight:bold;margin-bottom:4px;">${escapeHtml(item.product_name)}</div>
+      <div style="font-size:13px;color:#5a6272;margin-bottom:12px;">希望価格: \u00a5${(item.start_price || 0).toLocaleString()}</div>
 
-      ${hasPhoto ? '<div style="color:#4caf50;font-size:13px;margin-bottom:8px;">✅ 写真登録済み</div>' : ''}
+      ${hasPhoto ? '<div style="color:#006B3F;font-size:13px;margin-bottom:8px;">✅ 写真登録済み</div>' : ''}
 
       <div id="photoLinkPreview" style="margin-bottom:12px;"></div>
 
@@ -2008,7 +2008,7 @@ function showPhotoLinkItem(searchNum, allItems) {
       const preview = resultDiv.querySelector('#photoLinkPreview');
       preview.innerHTML = `
         <img src="${resized}" style="width:100%;border-radius:8px;margin-bottom:8px;">
-        <button id="photoLinkSave" style="width:100%;padding:12px;border-radius:8px;background:#4caf50;color:#fff;border:none;font-size:14px;font-weight:bold;cursor:pointer;">
+        <button id="photoLinkSave" style="width:100%;padding:12px;border-radius:8px;background:#006B3F;color:#fff;border:none;font-size:14px;font-weight:bold;cursor:pointer;">
           ✓ この写真で保存
         </button>
       `;
@@ -2077,7 +2077,7 @@ function renderErrorScreen(title, detail, buttons) {
     <button class="error-btn" data-idx="${i}"
       style="flex:1;padding:14px;border-radius:12px;font-size:14px;font-weight:bold;
              border:none;cursor:pointer;transition:all 0.15s;
-             ${i === 0 ? 'background:#C5A258;color:#000;' : 'background:#333;color:#ccc;'}">
+             ${i === 0 ? 'background:#C5A258;color:#000;' : 'background:#dde0e6;color:#4a4a5a;'}">
       ${escapeHtml(b.label)}
     </button>
   `).join('');
@@ -2086,8 +2086,8 @@ function renderErrorScreen(title, detail, buttons) {
     <div style="padding:16px 16px 100px;">
       <div style="text-align:center;padding:40px 20px;">
         <div style="font-size:48px;margin-bottom:12px;">⚠️</div>
-        <h2 style="color:#f44336;font-size:18px;margin-bottom:8px;">${escapeHtml(title)}</h2>
-        <p style="color:#888;font-size:13px;line-height:1.5;word-break:break-all;">${escapeHtml(detail || '')}</p>
+        <h2 style="color:#CE2029;font-size:18px;margin-bottom:8px;">${escapeHtml(title)}</h2>
+        <p style="color:#5a6272;font-size:13px;line-height:1.5;word-break:break-all;">${escapeHtml(detail || '')}</p>
       </div>
       <div style="display:flex;gap:10px;">
         ${btnHtml}

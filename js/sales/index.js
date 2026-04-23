@@ -76,9 +76,9 @@ function renderListView(container) {
       <div style="position:relative;margin-bottom:12px;">
         <input id="salesSearch" type="search" placeholder="管理番号・商品名で検索"
           value="${escapeHtml(searchQuery)}"
-          style="width:100%;box-sizing:border-box;padding:10px 12px 10px 36px;border-radius:10px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:14px;outline:none;"
+          style="width:100%;box-sizing:border-box;padding:10px 12px 10px 36px;border-radius:10px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:14px;outline:none;"
         />
-        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#666;font-size:16px;">🔍</span>
+        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#8a8a8a;font-size:16px;">🔍</span>
       </div>
 
       <!-- タブ -->
@@ -108,8 +108,8 @@ function renderListView(container) {
     tab.addEventListener('click', () => {
       currentTab = tab.dataset.tab;
       container.querySelectorAll('.sales-tab').forEach(t => {
-        t.style.background = t.dataset.tab === currentTab ? '#C5A258' : '#1a1a2e';
-        t.style.color = t.dataset.tab === currentTab ? '#000' : '#aaa';
+        t.style.background = t.dataset.tab === currentTab ? '#C5A258' : '#ffffff';
+        t.style.color = t.dataset.tab === currentTab ? '#fff' : '#5a6272';
       });
       loadItems(container);
     });
@@ -122,7 +122,7 @@ function renderTab(key, label) {
   const active = key === currentTab;
   return `<button class="sales-tab" data-tab="${key}"
     style="padding:8px 16px;border-radius:20px;border:none;font-size:13px;font-weight:bold;white-space:nowrap;cursor:pointer;
-    background:${active ? '#C5A258' : '#1a1a2e'};color:${active ? '#000' : '#aaa'};transition:all 0.2s;">
+    background:${active ? '#C5A258' : '#ffffff'};color:${active ? '#fff' : '#5a6272'};transition:all 0.2s;">
     ${label}
   </button>`;
 }
@@ -186,7 +186,7 @@ function renderItemCard(item) {
     ? `${formatPrice(item.start_price)} 〜 ${formatPrice(item.target_price)}`
     : '未設定';
   const lockedBadge = item.locked_by
-    ? `<span style="display:inline-block;padding:2px 6px;border-radius:8px;font-size:10px;background:#f4433622;color:#f44336;margin-left:4px;">🔒 ${escapeHtml(item.locked_by)}</span>`
+    ? `<span style="display:inline-block;padding:2px 6px;border-radius:8px;font-size:10px;background:#f4433622;color:#CE2029;margin-left:4px;">🔒 ${escapeHtml(item.locked_by)}</span>`
     : '';
   const priorityBadge = item.priority_score != null
     ? `<span style="font-size:10px;color:#C5A258;margin-left:4px;">★${item.priority_score}</span>`
@@ -197,16 +197,16 @@ function renderItemCard(item) {
 
   return `
     <div class="sales-card" data-mgmt="${escapeHtml(item.mgmt_num)}"
-      style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;
-      border:1px solid #222;transition:transform 0.15s;active:scale(0.98);">
+      style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;
+      border:1px solid #dde0e6;transition:transform 0.15s;active:scale(0.98);">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
         <span style="font-size:12px;color:#C5A258;font-weight:bold;">${markBadge}${escapeHtml(item.mgmt_num)}</span>
         <div>${statusBadge(item.status)}${lockedBadge}</div>
       </div>
-      <div style="font-size:14px;color:#e0e0e0;font-weight:bold;margin-bottom:4px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+      <div style="font-size:14px;color:#1C2541;font-weight:bold;margin-bottom:4px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
         ${escapeHtml(item.product_name || '（商品名なし）')}
       </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#888;">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#5a6272;">
         <span>${escapeHtml(channelLabel)}</span>
         <span>${priceRange}${priorityBadge}</span>
       </div>
@@ -280,13 +280,13 @@ async function openListingWork(container, mgmtNum) {
       </div>
 
       <!-- 商品情報ヘッダ -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #222;">
+      <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #dde0e6;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <span style="font-size:13px;color:#C5A258;font-weight:bold;">${escapeHtml(item.mgmt_num)}</span>
           ${statusBadge(item.status)}
         </div>
-        <div style="font-size:15px;color:#e0e0e0;font-weight:bold;margin-bottom:4px;">${escapeHtml(item.product_name || '')}</div>
-        <div style="font-size:12px;color:#888;">
+        <div style="font-size:15px;color:#1C2541;font-weight:bold;margin-bottom:4px;">${escapeHtml(item.product_name || '')}</div>
+        <div style="font-size:12px;color:#5a6272;">
           ${escapeHtml(item.maker || '')} | ${escapeHtml(channel?.name || item.channel_name || '未設定')} | 状態: ${escapeHtml(item.condition_rank || '—')}
         </div>
       </div>
@@ -294,9 +294,9 @@ async function openListingWork(container, mgmtNum) {
       <!-- 写真管理 -->
       <div style="margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-          <h3 style="color:#e0e0e0;font-size:13px;margin:0;">📷 商品写真</h3>
+          <h3 style="color:#1C2541;font-size:13px;margin:0;">📷 商品写真</h3>
           <div style="display:flex;gap:6px;">
-            ${item.drive_url ? `<a href="${escapeHtml(item.drive_url)}" target="_blank" rel="noopener" style="padding:4px 10px;border-radius:6px;border:1px solid #333;background:transparent;color:#888;font-size:11px;text-decoration:none;">Driveフォルダ</a>` : ''}
+            ${item.drive_url ? `<a href="${escapeHtml(item.drive_url)}" target="_blank" rel="noopener" style="padding:4px 10px;border-radius:6px;border:1px solid #dde0e6;background:transparent;color:#5a6272;font-size:11px;text-decoration:none;">Driveフォルダ</a>` : ''}
             <button id="addPhotoBtn" style="padding:4px 10px;border-radius:6px;border:1px solid #C5A258;background:transparent;color:#C5A258;font-size:11px;cursor:pointer;">+ 写真追加</button>
           </div>
         </div>
@@ -305,95 +305,95 @@ async function openListingWork(container, mgmtNum) {
             ? photos.map((url, i) => `
               <div style="position:relative;flex-shrink:0;" data-photo-idx="${i}" data-photo-type="existing">
                 <img src="${escapeHtml(url)}" alt="写真${i + 1}"
-                  style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #333;" />
-                <div style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.6);color:#888;font-size:9px;padding:1px 4px;border-radius:4px;">${i + 1}</div>
+                  style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #dde0e6;" />
+                <div style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.6);color:#5a6272;font-size:9px;padding:1px 4px;border-radius:4px;">${i + 1}</div>
               </div>
             `).join('')
             : ''
           }
         </div>
         <div id="sessionPhotoGallery" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;flex-wrap:wrap;margin-top:4px;"></div>
-        ${photos.length === 0 && sessionPhotos.length === 0 ? '<div id="noPhotoMsg" style="padding:10px;color:#666;font-size:13px;text-align:center;">写真がありません。「+ 写真追加」で撮影してください</div>' : ''}
+        ${photos.length === 0 && sessionPhotos.length === 0 ? '<div id="noPhotoMsg" style="padding:10px;color:#8a8a8a;font-size:13px;text-align:center;">写真がありません。「+ 写真追加」で撮影してください</div>' : ''}
       </div>
 
       <!-- AI生成タイトル -->
       <div style="margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <h3 style="color:#e0e0e0;font-size:13px;margin:0;">📝 出品タイトル</h3>
+          <h3 style="color:#1C2541;font-size:13px;margin:0;">📝 出品タイトル</h3>
           <div style="display:flex;gap:6px;">
             <button id="aiTitleBtn" style="padding:4px 10px;border-radius:6px;border:1px solid #C5A258;background:transparent;color:#C5A258;font-size:11px;cursor:pointer;">
               AI生成
             </button>
-            <button id="copyTitleBtn" style="padding:4px 10px;border-radius:6px;border:none;background:#333;color:#ccc;font-size:11px;cursor:pointer;">
+            <button id="copyTitleBtn" style="padding:4px 10px;border-radius:6px;border:none;background:#dde0e6;color:#4a4a5a;font-size:11px;cursor:pointer;">
               コピー
             </button>
           </div>
         </div>
         <div style="position:relative;">
-          <div style="font-size:11px;color:#888;margin-bottom:4px;">
+          <div style="font-size:11px;color:#5a6272;margin-bottom:4px;">
             スタッフマーク: <span style="color:#C5A258;font-weight:bold;">${staffMark}</span>　自動付与
           </div>
           <input id="listingTitle" type="text" maxlength="${TITLE_MAX_LEN}"
             value="${escapeHtml(generatedTitle)}"
             placeholder="出品タイトルを入力（最大${TITLE_MAX_LEN}文字）"
-            style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:14px;outline:none;" />
-          <div id="titleCounter" style="text-align:right;font-size:11px;color:#666;margin-top:2px;">
+            style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:14px;outline:none;" />
+          <div id="titleCounter" style="text-align:right;font-size:11px;color:#8a8a8a;margin-top:2px;">
             ${generatedTitle.length}/${TITLE_MAX_LEN}
           </div>
-          <div id="titleError" style="font-size:11px;color:#f44336;margin-top:2px;display:none;"></div>
+          <div id="titleError" style="font-size:11px;color:#CE2029;margin-top:2px;display:none;"></div>
         </div>
       </div>
 
       <!-- AI生成説明文 -->
       <div style="margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <h3 style="color:#e0e0e0;font-size:13px;margin:0;">📄 出品説明文</h3>
+          <h3 style="color:#1C2541;font-size:13px;margin:0;">📄 出品説明文</h3>
           <div style="display:flex;gap:6px;">
             <button id="aiDescBtn" style="padding:4px 10px;border-radius:6px;border:1px solid #C5A258;background:transparent;color:#C5A258;font-size:11px;cursor:pointer;">
               AI生成
             </button>
-            <button id="copyDescBtn" style="padding:4px 10px;border-radius:6px;border:none;background:#333;color:#ccc;font-size:11px;cursor:pointer;">
+            <button id="copyDescBtn" style="padding:4px 10px;border-radius:6px;border:none;background:#dde0e6;color:#4a4a5a;font-size:11px;cursor:pointer;">
               コピー
             </button>
           </div>
         </div>
         <textarea id="listingDesc" rows="6"
           placeholder="出品説明文を入力"
-          style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:13px;outline:none;resize:vertical;line-height:1.6;"
+          style="width:100%;box-sizing:border-box;padding:10px 12px;border-radius:8px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:13px;outline:none;resize:vertical;line-height:1.6;"
         >${escapeHtml(generatedDesc)}</textarea>
       </div>
 
       <!-- 価格 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #222;">
-        <h3 style="color:#e0e0e0;font-size:13px;margin:0 0 10px;">💰 価格設定</h3>
+      <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #dde0e6;">
+        <h3 style="color:#1C2541;font-size:13px;margin:0 0 10px;">💰 価格設定</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
           <div>
-            <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">開始価格</label>
+            <label style="font-size:11px;color:#5a6272;display:block;margin-bottom:4px;">開始価格</label>
             <input id="startPrice" type="number" inputmode="numeric"
               value="${item.start_price || ''}"
               placeholder="¥0"
-              style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:15px;font-weight:bold;outline:none;" />
+              style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:15px;font-weight:bold;outline:none;" />
           </div>
           <div>
-            <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">目標価格</label>
+            <label style="font-size:11px;color:#5a6272;display:block;margin-bottom:4px;">目標価格</label>
             <input id="targetPrice" type="number" inputmode="numeric"
               value="${item.target_price || ''}"
               placeholder="¥0"
-              style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:15px;font-weight:bold;outline:none;" />
+              style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:15px;font-weight:bold;outline:none;" />
           </div>
         </div>
         ${item.min_listing_price ? `
-          <div style="margin-top:8px;font-size:11px;color:#888;">
+          <div style="margin-top:8px;font-size:11px;color:#5a6272;">
             最低出品価格: <span style="color:#C5A258;font-weight:bold;">${formatPrice(item.min_listing_price)}</span>
           </div>
         ` : ''}
       </div>
 
       <!-- チャンネル変更 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #222;">
-        <h3 style="color:#e0e0e0;font-size:13px;margin:0 0 10px;">📢 販売チャンネル</h3>
+      <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #dde0e6;">
+        <h3 style="color:#1C2541;font-size:13px;margin:0 0 10px;">📢 販売チャンネル</h3>
         <select id="channelSelect"
-          style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:14px;outline:none;">
+          style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:14px;outline:none;">
           ${CONFIG.CHANNELS.filter(c => c.type === 'tsuhan').map(c => `
             <option value="${escapeHtml(c.name)}" ${c.name === item.channel_name ? 'selected' : ''}>
               ${escapeHtml(c.name)}（${escapeHtml(c.platform || '—')}）
@@ -410,11 +410,11 @@ async function openListingWork(container, mgmtNum) {
         </button>
         <div style="display:flex;gap:10px;">
           <button id="saveProgressBtn"
-            style="flex:1;padding:12px;border-radius:10px;border:1px solid #333;background:#1a1a2e;color:#e0e0e0;font-size:13px;cursor:pointer;">
+            style="flex:1;padding:12px;border-radius:10px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:13px;cursor:pointer;">
             💾 途中保存
           </button>
           <button id="cancelWorkBtn"
-            style="flex:1;padding:12px;border-radius:10px;border:1px solid #f4433644;background:transparent;color:#f44336;font-size:13px;cursor:pointer;">
+            style="flex:1;padding:12px;border-radius:10px;border:1px solid #CE202944;background:transparent;color:#CE2029;font-size:13px;cursor:pointer;">
             ✖ 作業キャンセル
           </button>
         </div>
@@ -834,22 +834,22 @@ function openListingDetail(container, item) {
       </div>
 
       <!-- 商品情報 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #222;">
+      <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #dde0e6;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <span style="font-size:13px;color:#C5A258;font-weight:bold;">${escapeHtml(item.mgmt_num)}</span>
           ${statusBadge(item.status)}
         </div>
-        <div style="font-size:15px;color:#e0e0e0;font-weight:bold;margin-bottom:4px;">${escapeHtml(item.product_name || '')}</div>
-        <div style="font-size:12px;color:#888;margin-bottom:6px;">
+        <div style="font-size:15px;color:#1C2541;font-weight:bold;margin-bottom:4px;">${escapeHtml(item.product_name || '')}</div>
+        <div style="font-size:12px;color:#5a6272;margin-bottom:6px;">
           ${escapeHtml(item.maker || '')} | ${escapeHtml(channel?.name || item.channel_name || '未設定')}
         </div>
         ${item.listing_title ? `
-          <div style="font-size:12px;color:#aaa;padding:8px;background:#0a0a0a;border-radius:6px;margin-top:6px;word-break:break-all;">
+          <div style="font-size:12px;color:#5a6272;padding:8px;background:#F8F5EE;border-radius:6px;margin-top:6px;word-break:break-all;">
             ${escapeHtml(item.listing_title)}
           </div>
         ` : ''}
         ${item.listed_at ? `
-          <div style="font-size:11px;color:#666;margin-top:6px;">
+          <div style="font-size:11px;color:#8a8a8a;margin-top:6px;">
             出品日: ${new Date(item.listed_at).toLocaleDateString('ja-JP')}
             ${item.listed_by ? ` / ${escapeHtml(item.listed_by)}` : ''}
             ${item.listing_duration_seconds ? ` / 作業時間: ${formatDuration(item.listing_duration_seconds)}` : ''}
@@ -858,33 +858,33 @@ function openListingDetail(container, item) {
       </div>
 
       <!-- 価格管理 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #222;">
-        <h3 style="color:#e0e0e0;font-size:13px;margin:0 0 10px;">💰 価格管理</h3>
+      <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #dde0e6;">
+        <h3 style="color:#1C2541;font-size:13px;margin:0 0 10px;">💰 価格管理</h3>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
           <div>
-            <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">開始価格</label>
+            <label style="font-size:11px;color:#5a6272;display:block;margin-bottom:4px;">開始価格</label>
             <input id="detailStartPrice" type="number" inputmode="numeric"
               value="${item.start_price || ''}"
-              style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:15px;font-weight:bold;outline:none;" />
+              style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:15px;font-weight:bold;outline:none;" />
           </div>
           <div>
-            <label style="font-size:11px;color:#888;display:block;margin-bottom:4px;">目標価格</label>
+            <label style="font-size:11px;color:#5a6272;display:block;margin-bottom:4px;">目標価格</label>
             <input id="detailTargetPrice" type="number" inputmode="numeric"
               value="${item.target_price || ''}"
-              style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:15px;font-weight:bold;outline:none;" />
+              style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:15px;font-weight:bold;outline:none;" />
           </div>
         </div>
         <button id="updatePriceBtn"
-          style="width:100%;padding:10px;border-radius:8px;border:none;background:#333;color:#e0e0e0;font-size:13px;cursor:pointer;">
+          style="width:100%;padding:10px;border-radius:8px;border:none;background:#dde0e6;color:#1C2541;font-size:13px;cursor:pointer;">
           価格を更新
         </button>
       </div>
 
       <!-- チャンネル変更 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #222;">
-        <h3 style="color:#e0e0e0;font-size:13px;margin:0 0 10px;">📢 チャンネル変更</h3>
+      <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #dde0e6;">
+        <h3 style="color:#1C2541;font-size:13px;margin:0 0 10px;">📢 チャンネル変更</h3>
         <select id="detailChannelSelect"
-          style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:14px;outline:none;margin-bottom:10px;">
+          style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:14px;outline:none;margin-bottom:10px;">
           ${CONFIG.CHANNELS.filter(c => c.type === 'tsuhan').map(c => `
             <option value="${escapeHtml(c.name)}" ${c.name === item.channel_name ? 'selected' : ''}>
               ${escapeHtml(c.name)}（${escapeHtml(c.platform || '—')}）
@@ -892,15 +892,15 @@ function openListingDetail(container, item) {
           `).join('')}
         </select>
         <button id="changeChannelBtn"
-          style="width:100%;padding:10px;border-radius:8px;border:none;background:#333;color:#e0e0e0;font-size:13px;cursor:pointer;">
+          style="width:100%;padding:10px;border-radius:8px;border:none;background:#dde0e6;color:#1C2541;font-size:13px;cursor:pointer;">
           チャンネルを変更
         </button>
       </div>
 
       <!-- 再出品 -->
-      <div style="background:#1a1a2e;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #222;">
-        <h3 style="color:#e0e0e0;font-size:13px;margin:0 0 10px;">🔄 再出品</h3>
-        <p style="font-size:12px;color:#888;margin-bottom:10px;">出品中の商品を一度取り下げて再出品します。タイトル・説明文を編集できます。</p>
+      <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #dde0e6;">
+        <h3 style="color:#1C2541;font-size:13px;margin:0 0 10px;">🔄 再出品</h3>
+        <p style="font-size:12px;color:#5a6272;margin-bottom:10px;">出品中の商品を一度取り下げて再出品します。タイトル・説明文を編集できます。</p>
         <button id="relistBtn"
           style="width:100%;padding:12px;border-radius:8px;border:1px solid #C5A258;background:transparent;color:#C5A258;font-size:14px;font-weight:bold;cursor:pointer;">
           再出品する
@@ -910,10 +910,10 @@ function openListingDetail(container, item) {
       <!-- コピーボタン群 -->
       ${item.listing_title ? `
         <div style="display:flex;gap:8px;margin-bottom:16px;">
-          <button id="copyDetailTitle" style="flex:1;padding:10px;border-radius:8px;border:none;background:#333;color:#ccc;font-size:12px;cursor:pointer;">
+          <button id="copyDetailTitle" style="flex:1;padding:10px;border-radius:8px;border:none;background:#dde0e6;color:#4a4a5a;font-size:12px;cursor:pointer;">
             📋 タイトルコピー
           </button>
-          <button id="copyDetailDesc" style="flex:1;padding:10px;border-radius:8px;border:none;background:#333;color:#ccc;font-size:12px;cursor:pointer;">
+          <button id="copyDetailDesc" style="flex:1;padding:10px;border-radius:8px;border:none;background:#dde0e6;color:#4a4a5a;font-size:12px;cursor:pointer;">
             📋 説明文コピー
           </button>
         </div>
@@ -921,12 +921,12 @@ function openListingDetail(container, item) {
 
       <!-- 管理操作 -->
       <div style="margin-top:24px;padding-top:16px;border-top:1px solid #333;">
-        <p style="color:#666;font-size:11px;margin-bottom:8px;">管理操作</p>
+        <p style="color:#8a8a8a;font-size:11px;margin-bottom:8px;">管理操作</p>
         <div style="display:flex;gap:8px;">
-          <button id="btnRevertStatus" style="flex:1;padding:10px;border-radius:8px;border:1px solid #ff9800;background:transparent;color:#ff9800;font-size:13px;cursor:pointer;">
+          <button id="btnRevertStatus" style="flex:1;padding:10px;border-radius:8px;border:1px solid #C5A258;background:transparent;color:#C5A258;font-size:13px;cursor:pointer;">
             ↩ ステータスを戻す
           </button>
-          <button id="btnDeleteItem" style="flex:1;padding:10px;border-radius:8px;border:1px solid #f44336;background:transparent;color:#f44336;font-size:13px;cursor:pointer;">
+          <button id="btnDeleteItem" style="flex:1;padding:10px;border-radius:8px;border:1px solid #f44336;background:transparent;color:#CE2029;font-size:13px;cursor:pointer;">
             🗑 削除
           </button>
         </div>
@@ -1001,19 +1001,19 @@ function openListingDetail(container, item) {
   container.querySelector('#btnRevertStatus').addEventListener('click', () => {
     const revertOptions = ['分荷確定', '撮影待ち', '出品待ち'];
     const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(28,37,65,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
     overlay.innerHTML = `
-      <div style="background:#1a1a2e;border-radius:16px;padding:24px;max-width:320px;width:100%;">
-        <h3 style="color:#ff9800;font-size:16px;margin:0 0 16px;">↩ ステータスを戻す</h3>
-        <p style="color:#888;font-size:12px;margin-bottom:12px;">現在: ${escapeHtml(item.status)}</p>
+      <div style="background:#ffffff;border-radius:16px;padding:24px;max-width:320px;width:100%;">
+        <h3 style="color:#C5A258;font-size:16px;margin:0 0 16px;">↩ ステータスを戻す</h3>
+        <p style="color:#5a6272;font-size:12px;margin-bottom:12px;">現在: ${escapeHtml(item.status)}</p>
         <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
           ${revertOptions.map(s => `
-            <button data-revert-to="${escapeHtml(s)}" style="padding:12px;border-radius:8px;border:1px solid #333;background:#0d0d1a;color:#e0e0e0;font-size:14px;cursor:pointer;text-align:left;">
+            <button data-revert-to="${escapeHtml(s)}" style="padding:12px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:14px;cursor:pointer;text-align:left;">
               → ${escapeHtml(s)}
             </button>
           `).join('')}
         </div>
-        <button id="revertCancel" style="width:100%;padding:10px;border-radius:8px;background:#333;color:#ccc;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
+        <button id="revertCancel" style="width:100%;padding:10px;border-radius:8px;background:#dde0e6;color:#4a4a5a;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
       </div>
     `;
     document.body.appendChild(overlay);

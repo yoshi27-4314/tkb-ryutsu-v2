@@ -39,9 +39,9 @@ async function boot() {
 
   // DB初期化
   if (!initDB()) {
-    app.innerHTML = `<div style="padding:40px;text-align:center;color:#f44336;">
+    app.innerHTML = `<div style="padding:40px;text-align:center;color:#CE2029;">
       <p>データベースに接続できません</p>
-      <p style="font-size:12px;color:#888;margin-top:8px;">ページを再読み込みしてください</p>
+      <p style="font-size:12px;color:#5a6272;margin-top:8px;">ページを再読み込みしてください</p>
     </div>`;
     return;
   }
@@ -179,7 +179,7 @@ async function renderHome() {
       ${bottlenecks.length > 0 ? `
         <div style="padding:0 16px;">
           ${bottlenecks.map(b => `
-            <div style="background:${b.level === 'danger' ? '#2a0a0a' : '#2a1a0a'};border-left:3px solid ${b.level === 'danger' ? 'var(--danger)' : 'var(--warning)'};padding:10px 12px;margin:4px 0;border-radius:0 8px 8px 0;font-size:13px;color:${b.level === 'danger' ? '#f88' : '#fda'};">
+            <div style="background:${b.level === 'danger' ? '#fde8e8' : '#fef6e0'};border-left:3px solid ${b.level === 'danger' ? 'var(--danger)' : 'var(--warning)'};padding:10px 12px;margin:4px 0;border-radius:0 8px 8px 0;font-size:13px;color:${b.level === 'danger' ? '#CE2029' : '#8a6d20'};">
               ${b.level === 'danger' ? '🚨' : '⚠️'} ${b.msg}
             </div>
           `).join('')}
@@ -191,14 +191,14 @@ async function renderHome() {
         <div class="section-title" style="color:var(--danger);">滞留アラート（${staleItems.length}件）</div>
         <div style="padding:0 16px;">
           ${staleItems.slice(0, 5).map(item => `
-            <div style="background:#1a1a2e;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="background:#ffffff;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;border:1px solid #dde0e6;box-shadow:0 1px 4px rgba(28,37,65,0.06);">
               <div>
                 <span style="color:#C5A258;font-size:12px;">${item.mgmt_num}</span>
-                <div style="font-size:13px;color:#e0e0e0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${item.product_name}</div>
+                <div style="font-size:13px;color:#1C2541;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${item.product_name}</div>
               </div>
               <div style="text-align:right;">
-                <div style="color:#f44336;font-size:16px;font-weight:bold;">${item.staleDays}日</div>
-                <div style="font-size:10px;color:#888;">${item.status}</div>
+                <div style="color:#CE2029;font-size:16px;font-weight:bold;">${item.staleDays}日</div>
+                <div style="font-size:10px;color:#5a6272;">${item.status}</div>
               </div>
             </div>
           `).join('')}
@@ -306,7 +306,7 @@ async function renderHome() {
             ${statusBadge(item.status)}
           </div>
         </div>
-      `).join('') || '<p style="color:#888;font-size:13px;">なし</p>';
+      `).join('') || '<p style="color:#5a6272;font-size:13px;">なし</p>';
     }
   }
 }
@@ -321,7 +321,7 @@ async function renderItemPage(params) {
   const item = await getItems({ search: mgmtNum, limit: 1 });
 
   if (!item || item.length === 0) {
-    content.innerHTML = `<div style="padding:40px;text-align:center;color:#888;">
+    content.innerHTML = `<div style="padding:40px;text-align:center;color:#5a6272;">
       <p>商品 ${escapeHtml(mgmtNum)} が見つかりません</p>
       <button onclick="window.__nav('home')" class="btn btn-secondary" style="margin-top:16px;">ホームに戻る</button>
     </div>`;

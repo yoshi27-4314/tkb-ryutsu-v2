@@ -45,11 +45,13 @@ export async function hashPin(pin) {
 // ログイン画面を表示
 export function showLoginScreen(container, onLogin) {
   container.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0a0a0a;padding:20px;">
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#F8F5EE;padding:20px;">
       <div style="text-align:center;margin-bottom:40px;">
-        <div style="font-size:48px;margin-bottom:8px;">📦</div>
-        <h1 style="color:#C5A258;font-size:22px;margin-bottom:4px;">テイクバック流通</h1>
-        <p style="color:#666;font-size:13px;">スタッフを選択してください</p>
+        <div style="width:72px;height:72px;background:#1C2541;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 12px rgba(28,37,65,0.2);">
+          <span style="color:#C5A258;font-size:24px;font-weight:bold;letter-spacing:2px;">TKB</span>
+        </div>
+        <h1 style="color:#1C2541;font-size:22px;margin-bottom:4px;">テイクバック流通</h1>
+        <p style="color:#5a6272;font-size:13px;">スタッフを選択してください</p>
       </div>
       <div id="staffGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:320px;width:100%;"></div>
     </div>
@@ -70,11 +72,11 @@ export function showLoginScreen(container, onLogin) {
 
   for (const staff of staffConfig) {
     const btn = document.createElement('button');
-    btn.style.cssText = 'background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:16px 8px;text-align:center;color:#e0e0e0;cursor:pointer;transition:all 0.2s;';
+    btn.style.cssText = 'background:#ffffff;border:1px solid #dde0e6;border-radius:12px;padding:16px 8px;text-align:center;color:#1C2541;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(28,37,65,0.08);';
     btn.innerHTML = `
       <div style="font-size:28px;margin-bottom:4px;">${staff.avatar}</div>
       <div style="font-size:14px;font-weight:bold;">${staff.name.split(/(?=[a-z])/)[0]}</div>
-      <div style="font-size:10px;color:#888;">${staff.company || 'テイクバック'}</div>
+      <div style="font-size:10px;color:#5a6272;">${staff.company || 'テイクバック'}</div>
     `;
     btn.addEventListener('click', () => {
       setCurrentStaff(staff);

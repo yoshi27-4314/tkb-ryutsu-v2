@@ -9,7 +9,7 @@ export function showToast(message, duration = 3000) {
   if (!toast) {
     toast = document.createElement('div');
     toast.id = 'toast';
-    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:9999;opacity:0;transition:opacity 0.3s;max-width:90%;text-align:center;pointer-events:none;';
+    toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#ffffff;color:#1C2541;padding:10px 20px;border-radius:8px;font-size:14px;z-index:9999;opacity:0;transition:opacity 0.3s;max-width:90%;text-align:center;pointer-events:none;box-shadow:0 4px 16px rgba(28,37,65,0.15);border:1px solid #dde0e6;';
     document.body.appendChild(toast);
   }
   toast.textContent = message;
@@ -21,8 +21,8 @@ export function showToast(message, duration = 3000) {
 // --- ローディング ---
 export function showLoading(container, text = '読み込み中...') {
   container.innerHTML = `
-    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;color:#888;">
-      <div class="spinner" style="width:32px;height:32px;border:3px solid #333;border-top-color:#C5A258;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px;color:#5a6272;">
+      <div class="spinner" style="width:32px;height:32px;border:3px solid #dde0e6;border-top-color:#C5A258;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
       <p style="margin-top:12px;font-size:13px;">${text}</p>
     </div>
   `;
@@ -31,13 +31,13 @@ export function showLoading(container, text = '読み込み中...') {
 // --- 確認ダイアログ ---
 export function showConfirm(message, onConfirm, onCancel) {
   const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(28,37,65,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
   overlay.innerHTML = `
-    <div style="background:#1a1a2e;border-radius:16px;padding:24px;max-width:320px;width:100%;text-align:center;">
-      <p style="color:#e0e0e0;font-size:15px;margin-bottom:20px;line-height:1.5;">${message}</p>
+    <div style="background:#ffffff;border-radius:16px;padding:24px;max-width:320px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(28,37,65,0.2);">
+      <p style="color:#1C2541;font-size:15px;margin-bottom:20px;line-height:1.5;">${message}</p>
       <div style="display:flex;gap:12px;">
-        <button id="confirmCancel" style="flex:1;padding:12px;border-radius:8px;background:#333;color:#ccc;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
-        <button id="confirmOk" style="flex:1;padding:12px;border-radius:8px;background:#C5A258;color:#000;border:none;font-size:14px;font-weight:bold;cursor:pointer;">OK</button>
+        <button id="confirmCancel" style="flex:1;padding:12px;border-radius:8px;background:#f0ede5;color:#5a6272;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
+        <button id="confirmOk" style="flex:1;padding:12px;border-radius:8px;background:#006B3F;color:#fff;border:none;font-size:14px;font-weight:bold;cursor:pointer;">OK</button>
       </div>
     </div>
   `;
@@ -49,17 +49,17 @@ export function showConfirm(message, onConfirm, onCancel) {
 // --- ステータスバッジ ---
 export function statusBadge(status) {
   const colors = {
-    '分荷確定': '#2196f3', '撮影待ち': '#2196f3', '受取済み': '#2196f3',
-    '出品待ち': '#ff9800', '出品作業中': '#ff9800',
-    '出品中': '#4caf50',
-    '落札済み': '#9c27b0', '入金待ち': '#9c27b0', '入金確認済み': '#9c27b0',
-    '梱包待ち': '#e91e63', '梱包中': '#e91e63', '梱包完了': '#e91e63',
-    '発送済み': '#00bcd4',
-    '完了': '#4caf50',
-    '確認/相談': '#f44336',
+    '分荷確定': '#1C2541', '撮影待ち': '#1C2541', '受取済み': '#1C2541',
+    '出品待ち': '#C5A258', '出品作業中': '#C5A258',
+    '出品中': '#006B3F',
+    '落札済み': '#7B2D8E', '入金待ち': '#7B2D8E', '入金確認済み': '#7B2D8E',
+    '梱包待ち': '#c4356a', '梱包中': '#c4356a', '梱包完了': '#c4356a',
+    '発送済み': '#0891b2',
+    '完了': '#006B3F',
+    '確認/相談': '#CE2029',
   };
-  const color = colors[status] || '#888';
-  return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold;background:${color}22;color:${color};">${status}</span>`;
+  const color = colors[status] || '#5a6272';
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:bold;background:${color}18;color:${color};">${status}</span>`;
 }
 
 // --- 金額フォーマット ---
@@ -91,7 +91,7 @@ export function formatDuration(seconds) {
 // --- 空状態表示 ---
 export function emptyState(icon, message) {
   return `
-    <div style="text-align:center;padding:60px 20px;color:#666;">
+    <div style="text-align:center;padding:60px 20px;color:#8a8a8a;">
       <div style="font-size:48px;margin-bottom:12px;">${icon}</div>
       <p style="font-size:14px;">${message}</p>
     </div>
@@ -179,7 +179,7 @@ export function renderLeadTimes(item) {
   const rows = [];
   const lt = (label, from, to) => {
     const days = calcLeadTime(from, to);
-    if (days !== null) rows.push(`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span style="color:#888;">${label}</span><span style="color:${days > 7 ? '#f44336' : days > 3 ? '#ff9800' : '#4caf50'};">${days}日</span></div>`);
+    if (days !== null) rows.push(`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;"><span style="color:#5a6272;">${label}</span><span style="color:${days > 7 ? '#CE2029' : days > 3 ? '#C5A258' : '#006B3F'};">${days}日</span></div>`);
   };
   lt('分荷→出品', item.judged_at, item.listed_at);
   lt('出品→落札', item.listed_at, item.sold_at);
@@ -187,8 +187,8 @@ export function renderLeadTimes(item) {
   lt('梱包→発送', item.packed_at, item.shipped_at);
 
   const total = calcLeadTime(item.judged_at, item.completed_at || item.shipped_at);
-  if (total !== null) rows.push(`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-top:1px solid #333;margin-top:4px;padding-top:6px;"><span style="color:#C5A258;font-weight:bold;">トータル</span><span style="color:#C5A258;font-weight:bold;">${total}日</span></div>`);
+  if (total !== null) rows.push(`<div style="display:flex;justify-content:space-between;padding:3px 0;font-size:12px;border-top:1px solid #dde0e6;margin-top:4px;padding-top:6px;"><span style="color:#C5A258;font-weight:bold;">トータル</span><span style="color:#C5A258;font-weight:bold;">${total}日</span></div>`);
 
   if (rows.length === 0) return '';
-  return `<div style="background:#1a1a2e;border-radius:8px;padding:10px 12px;margin-top:8px;"><div style="color:#888;font-size:11px;margin-bottom:4px;">リードタイム</div>${rows.join('')}</div>`;
+  return `<div style="background:#ffffff;border-radius:8px;padding:10px 12px;margin-top:8px;border:1px solid #dde0e6;box-shadow:0 1px 4px rgba(28,37,65,0.06);"><div style="color:#5a6272;font-size:11px;margin-bottom:4px;">リードタイム</div>${rows.join('')}</div>`;
 }

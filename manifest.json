@@ -4,8 +4,8 @@
   "description": "テイクバック流通事業部 業務アプリ v2",
   "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0a0a0a",
+  "background_color": "#F8F5EE",
+  "theme_color": "#F8F5EE",
   "orientation": "portrait",
   "icons": [
     {

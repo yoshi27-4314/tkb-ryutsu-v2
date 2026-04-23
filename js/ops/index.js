@@ -12,12 +12,12 @@ import { navigate } from '../core/router.js';
 // 共通スタイル定数
 // ============================================================
 const GOLD = '#C5A258';
-const BG = '#0a0a0a';
-const CARD_BG = '#1a1a2e';
-const BORDER = '#2a2a3e';
-const TEXT_PRIMARY = '#e0e0e0';
-const TEXT_SECONDARY = '#888';
-const TEXT_MUTED = '#666';
+const BG = '#F8F5EE';
+const CARD_BG = '#ffffff';
+const BORDER = '#dde0e6';
+const TEXT_PRIMARY = '#1C2541';
+const TEXT_SECONDARY = '#5a6272';
+const TEXT_MUTED = '#8a8a8a';
 
 const ACCOUNTING_CATEGORIES = [
   '消耗品費', '交通費', '通信費', '修繕費', '水道光熱費',
@@ -60,15 +60,15 @@ function sectionTitle(text) {
 function btn(text, id, style = 'primary') {
   const styles = {
     primary: `background:${GOLD};color:#000;font-weight:bold;`,
-    secondary: `background:#333;color:${TEXT_PRIMARY};`,
-    danger: `background:#c0392b;color:#fff;font-weight:bold;`,
+    secondary: `background:#dde0e6;color:${TEXT_PRIMARY};`,
+    danger: `background:#CE2029;color:#fff;font-weight:bold;`,
     ghost: `background:transparent;color:${GOLD};border:1px solid ${GOLD};`,
   };
   return `<button id="${id}" style="${styles[style] || styles.primary}padding:10px 16px;border-radius:8px;border:none;font-size:14px;cursor:pointer;transition:opacity 0.2s;width:100%;" ontouchstart="this.style.opacity='0.7'" ontouchend="this.style.opacity='1'">${text}</button>`;
 }
 
 function selectBox(id, options, selected = '', placeholder = '') {
-  let html = `<select id="${id}" style="width:100%;padding:10px 12px;border-radius:8px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;appearance:none;-webkit-appearance:none;">`;
+  let html = `<select id="${id}" style="width:100%;padding:10px 12px;border-radius:8px;background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;appearance:none;-webkit-appearance:none;">`;
   if (placeholder) html += `<option value="">${placeholder}</option>`;
   for (const opt of options) {
     const val = typeof opt === 'string' ? opt : opt.value;
@@ -80,7 +80,7 @@ function selectBox(id, options, selected = '', placeholder = '') {
 }
 
 function inputField(id, type = 'text', placeholder = '', value = '', extra = '') {
-  return `<input id="${id}" type="${type}" placeholder="${placeholder}" value="${escapeHtml(String(value || ''))}" style="width:100%;padding:10px 12px;border-radius:8px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;box-sizing:border-box;${extra}" />`;
+  return `<input id="${id}" type="${type}" placeholder="${placeholder}" value="${escapeHtml(String(value || ''))}" style="width:100%;padding:10px 12px;border-radius:8px;background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;box-sizing:border-box;${extra}" />`;
 }
 
 function label(text) {
@@ -89,7 +89,7 @@ function label(text) {
 
 function tabBar(tabs, activeTab, onClickAttr = 'data-subtab') {
   return `<div style="display:flex;gap:4px;overflow-x:auto;padding-bottom:12px;-webkit-overflow-scrolling:touch;">
-    ${tabs.map(t => `<button ${onClickAttr}="${t.id}" style="flex-shrink:0;padding:8px 14px;border-radius:20px;border:none;font-size:13px;cursor:pointer;white-space:nowrap;transition:all 0.2s;${t.id === activeTab ? `background:${GOLD};color:#000;font-weight:bold;` : `background:#222;color:${TEXT_SECONDARY};`}">${t.label}</button>`).join('')}
+    ${tabs.map(t => `<button ${onClickAttr}="${t.id}" style="flex-shrink:0;padding:8px 14px;border-radius:20px;border:none;font-size:13px;cursor:pointer;white-space:nowrap;transition:all 0.2s;${t.id === activeTab ? `background:${GOLD};color:#000;font-weight:bold;` : `background:#e8e5dd;color:${TEXT_SECONDARY};`}">${t.label}</button>`).join('')}
   </div>`;
 }
 
@@ -209,7 +209,7 @@ function renderExpenseRegister(container, month, department, staff) {
       ${btn('📷 レシート撮影（OCR）', 'btnOcr', 'ghost')}
     </div>
 
-    <div id="ocrResult" style="display:none;margin-top:12px;padding:12px;background:#111;border-radius:8px;border:1px solid ${GOLD}33;">
+    <div id="ocrResult" style="display:none;margin-top:12px;padding:12px;background:#f5f5f5;border-radius:8px;border:1px solid ${GOLD}33;">
       <p style="color:${GOLD};font-size:12px;margin-bottom:8px;">OCR結果（自動入力）</p>
       <div id="ocrFields"></div>
     </div>
@@ -245,7 +245,7 @@ function renderExpenseRegister(container, month, department, staff) {
     ${inputField('expInvoice', 'text', 'T0000000000000')}
 
     ${label('備考')}
-    <textarea id="expMemo" rows="2" placeholder="メモ" style="width:100%;padding:10px 12px;border-radius:8px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+    <textarea id="expMemo" rows="2" placeholder="メモ" style="width:100%;padding:10px 12px;border-radius:8px;background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
 
     <div style="margin-top:20px;">
       ${btn('登録する', 'btnSaveExpense')}
@@ -409,7 +409,7 @@ async function renderExpenseList(container, month, department, staff) {
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div>
         <span style="color:${TEXT_SECONDARY};font-size:12px;">月選択</span>
-        <input type="month" id="expListMonth" value="${month}" style="background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};border-radius:8px;padding:6px 10px;font-size:13px;margin-left:4px;" />
+        <input type="month" id="expListMonth" value="${month}" style="background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};border-radius:8px;padding:6px 10px;font-size:13px;margin-left:4px;" />
       </div>
       <div style="text-align:right;">
         <span style="color:${TEXT_SECONDARY};font-size:12px;">合計</span>
@@ -429,7 +429,7 @@ async function renderExpenseList(container, month, department, staff) {
             </div>
             ${e.payment_method === '立替' ? `
               <div style="margin-top:6px;">
-                <button data-settle-id="${e.id}" style="padding:4px 12px;border-radius:12px;border:none;font-size:11px;cursor:pointer;${e.is_settled ? 'background:#4caf5033;color:#4caf50;' : 'background:#ff980033;color:#ff9800;'}">${e.is_settled ? '✓ 精算済み' : '未精算 → 精算済みにする'}</button>
+                <button data-settle-id="${e.id}" style="padding:4px 12px;border-radius:12px;border:none;font-size:11px;cursor:pointer;${e.is_settled ? 'background:#006B3F33;color:#006B3F;' : 'background:#C5A25833;color:#C5A258;'}">${e.is_settled ? '✓ 精算済み' : '未精算 → 精算済みにする'}</button>
               </div>
             ` : ''}
           </div>
@@ -438,7 +438,7 @@ async function renderExpenseList(container, month, department, staff) {
               <div style="color:${GOLD};font-size:16px;font-weight:bold;">${formatPrice(e.amount)}</div>
               <div style="color:${TEXT_MUTED};font-size:11px;">(税${formatPrice(e.tax_amount)})</div>
             </div>
-            <button data-del-expense="${e.id}" style="padding:4px 8px;border-radius:6px;border:1px solid #f4433666;background:transparent;color:#f44336;font-size:11px;cursor:pointer;">🗑</button>
+            <button data-del-expense="${e.id}" style="padding:4px 8px;border-radius:6px;border:1px solid #CE202966;background:transparent;color:#CE2029;font-size:11px;cursor:pointer;">🗑</button>
           </div>
         </div>
       `)).join('')}
@@ -543,7 +543,7 @@ function renderExpenseEditForm(container, expense, month, department, staff) {
     ${inputField('editExpInvoice', 'text', 'T0000000000000', expense.invoice_number || '')}
 
     ${label('備考')}
-    <textarea id="editExpMemo" rows="2" placeholder="メモ" style="width:100%;padding:10px 12px;border-radius:8px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;">${escapeHtml(expense.memo || '')}</textarea>
+    <textarea id="editExpMemo" rows="2" placeholder="メモ" style="width:100%;padding:10px 12px;border-radius:8px;background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;">${escapeHtml(expense.memo || '')}</textarea>
 
     <div style="display:flex;gap:8px;margin-top:20px;">
       <div style="flex:1;">${btn('キャンセル', 'btnCancelEdit', 'secondary')}</div>
@@ -623,7 +623,7 @@ async function renderExpenseSummary(container, month, department, staff) {
 
   container.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <input type="month" id="summaryMonth" value="${month}" style="background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};border-radius:8px;padding:6px 10px;font-size:13px;" />
+      <input type="month" id="summaryMonth" value="${month}" style="background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};border-radius:8px;padding:6px 10px;font-size:13px;" />
       <div style="text-align:right;">
         <span style="color:${TEXT_SECONDARY};font-size:12px;">月間合計</span>
         <div style="color:${GOLD};font-size:22px;font-weight:bold;">${formatPrice(total)}</div>
@@ -640,7 +640,7 @@ async function renderExpenseSummary(container, month, department, staff) {
               <span style="color:${TEXT_PRIMARY};font-size:14px;">${escapeHtml(cat)}</span>
               <span style="color:${GOLD};font-size:14px;font-weight:bold;">${formatPrice(amount)} <span style="color:${TEXT_MUTED};font-size:11px;">(${pct}%)</span></span>
             </div>
-            <div style="height:6px;background:#222;border-radius:3px;overflow:hidden;">
+            <div style="height:6px;background:#e8e5dd;border-radius:3px;overflow:hidden;">
               <div style="height:100%;width:${barWidth}%;background:${GOLD};border-radius:3px;transition:width 0.5s;"></div>
             </div>
           `, 'padding:12px;');
@@ -661,17 +661,17 @@ async function renderExpenseSummary(container, month, department, staff) {
       const sortedPersons = Object.entries(byPerson).sort((a, b) => b[1] - a[1]);
       return `
         <div style="margin-top:20px;">
-          <h3 style="color:#ff9800;font-size:15px;font-weight:bold;margin:0 0 12px 0;">⚠️ 未精算の立替（${unsettled.length}件）</h3>
-          <div style="background:#ff980011;border:1px solid #ff980033;border-radius:12px;padding:16px;margin-bottom:12px;">
+          <h3 style="color:#C5A258;font-size:15px;font-weight:bold;margin:0 0 12px 0;">⚠️ 未精算の立替（${unsettled.length}件）</h3>
+          <div style="background:#C5A25811;border:1px solid #C5A25833;border-radius:12px;padding:16px;margin-bottom:12px;">
             <div style="text-align:center;margin-bottom:12px;">
               <div style="color:#888;font-size:12px;">未精算合計</div>
-              <div style="color:#ff9800;font-size:24px;font-weight:bold;">${formatPrice(unsettledTotal)}</div>
+              <div style="color:#C5A258;font-size:24px;font-weight:bold;">${formatPrice(unsettledTotal)}</div>
             </div>
             <div style="display:flex;flex-direction:column;gap:8px;">
               ${sortedPersons.map(([person, amt]) => `
-                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#111;border-radius:8px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f5f5f5;border-radius:8px;">
                   <span style="color:${TEXT_PRIMARY};font-size:14px;">👤 ${escapeHtml(person)}</span>
-                  <span style="color:#ff9800;font-size:14px;font-weight:bold;">${formatPrice(amt)}</span>
+                  <span style="color:#C5A258;font-size:14px;font-weight:bold;">${formatPrice(amt)}</span>
                 </div>
               `).join('')}
             </div>
@@ -740,11 +740,11 @@ async function renderPettyCashBalance(container, month, department, staff) {
     ${card(`
       <div style="text-align:center;padding:20px 0;">
         <div style="color:${TEXT_SECONDARY};font-size:13px;margin-bottom:8px;">小口現金 残高</div>
-        <div style="color:${balance >= 0 ? GOLD : '#e74c3c'};font-size:40px;font-weight:bold;">${formatPrice(balance)}</div>
+        <div style="color:${balance >= 0 ? GOLD : '#CE2029'};font-size:40px;font-weight:bold;">${formatPrice(balance)}</div>
         <div style="display:flex;justify-content:center;gap:24px;margin-top:16px;">
           <div>
             <div style="color:${TEXT_MUTED};font-size:11px;">入金合計</div>
-            <div style="color:#4caf50;font-size:14px;font-weight:bold;">+${formatPrice(totalDeposits)}</div>
+            <div style="color:#006B3F;font-size:14px;font-weight:bold;">+${formatPrice(totalDeposits)}</div>
           </div>
           <div>
             <div style="color:${TEXT_MUTED};font-size:11px;">出金合計</div>
@@ -779,7 +779,7 @@ async function renderPettyCashBalance(container, month, department, staff) {
             ${t.memo ? `<div style="color:${TEXT_MUTED};font-size:10px;">${escapeHtml(t.memo)}</div>` : ''}
           </div>
           <div style="text-align:right;flex-shrink:0;margin-left:12px;">
-            <div style="color:${t.type === 'in' ? '#4caf50' : '#e74c3c'};font-size:14px;font-weight:bold;">${t.type === 'in' ? '+' : '-'}${formatPrice(t.displayAmount)}</div>
+            <div style="color:${t.type === 'in' ? '#006B3F' : '#CE2029'};font-size:14px;font-weight:bold;">${t.type === 'in' ? '+' : '-'}${formatPrice(t.displayAmount)}</div>
             <div style="color:${TEXT_MUTED};font-size:10px;">残高 ${formatPrice(t.runningBalance)}</div>
           </div>
         </div>
@@ -908,7 +908,7 @@ function renderClock(container, staff, params) {
       </label>
     </div>
 
-    <div id="workSummary" style="margin-top:16px;padding:12px;background:#111;border-radius:8px;text-align:center;">
+    <div id="workSummary" style="margin-top:16px;padding:12px;background:#f5f5f5;border-radius:8px;text-align:center;">
       <span style="color:${TEXT_SECONDARY};font-size:12px;">実労働時間</span>
       <div style="color:${GOLD};font-size:24px;font-weight:bold;" id="actualWork">—</div>
     </div>
@@ -994,10 +994,10 @@ function renderClock(container, staff, params) {
     const flag = container.querySelector('#freeeFlag');
     if (todayRecord?.synced_to_freee) {
       flag.textContent = '同期済み ✓';
-      flag.style.color = '#4caf50';
+      flag.style.color = '#006B3F';
     } else if (todayRecord) {
       flag.textContent = '未同期';
-      flag.style.color = '#ff9800';
+      flag.style.color = '#C5A258';
     } else {
       flag.textContent = '記録なし';
     }
@@ -1053,7 +1053,7 @@ function openClockPicker(currentValue, onSelect) {
   let mode = 'hour'; // 'hour' or 'minute'
 
   const overlay = document.createElement('div');
-  overlay.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;`;
+  overlay.style.cssText = `position:fixed;inset:0;background:rgba(28,37,65,0.5);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;`;
 
   function render() {
     overlay.innerHTML = `
@@ -1064,14 +1064,14 @@ function openClockPicker(currentValue, onSelect) {
           <span id="cpMinute" style="font-size:32px;font-weight:bold;cursor:pointer;${mode === 'minute' ? `color:${GOLD};` : `color:${TEXT_SECONDARY};`}">${String(selectedMinute).padStart(2, '0')}</span>
         </div>
 
-        <div style="position:relative;width:240px;height:240px;margin:0 auto;border-radius:50%;background:#111;border:2px solid ${BORDER};">
+        <div style="position:relative;width:240px;height:240px;margin:0 auto;border-radius:50%;background:#f5f5f5;border:2px solid ${BORDER};">
           <div style="position:absolute;inset:0;" id="clockFace"></div>
           <div style="position:absolute;top:50%;left:50%;width:6px;height:6px;background:${GOLD};border-radius:50%;transform:translate(-50%,-50%);z-index:2;"></div>
           <div id="clockHand" style="position:absolute;top:50%;left:50%;transform-origin:bottom center;z-index:1;"></div>
         </div>
 
         <div style="display:flex;gap:12px;margin-top:20px;">
-          <button id="cpCancel" style="flex:1;padding:12px;border-radius:8px;background:#333;color:${TEXT_PRIMARY};border:none;font-size:14px;cursor:pointer;">キャンセル</button>
+          <button id="cpCancel" style="flex:1;padding:12px;border-radius:8px;background:#dde0e6;color:${TEXT_PRIMARY};border:none;font-size:14px;cursor:pointer;">キャンセル</button>
           <button id="cpOk" style="flex:1;padding:12px;border-radius:8px;background:${GOLD};color:#000;border:none;font-size:14px;font-weight:bold;cursor:pointer;">OK</button>
         </div>
       </div>
@@ -1171,7 +1171,7 @@ async function renderAttendanceCalendar(container, month, staff, params) {
   container.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <button id="calPrev" style="background:none;border:none;color:${GOLD};font-size:20px;cursor:pointer;padding:8px;">◀</button>
-      <input type="month" id="calMonth" value="${month}" style="background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};border-radius:8px;padding:6px 10px;font-size:14px;" />
+      <input type="month" id="calMonth" value="${month}" style="background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};border-radius:8px;padding:6px 10px;font-size:14px;" />
       <button id="calNext" style="background:none;border:none;color:${GOLD};font-size:20px;cursor:pointer;padding:8px;">▶</button>
     </div>
 
@@ -1194,7 +1194,7 @@ async function renderAttendanceCalendar(container, month, staff, params) {
 
     <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">
       ${['日', '月', '火', '水', '木', '金', '土'].map((d, i) =>
-        `<div style="color:${i === 0 ? '#c0392b' : i === 6 ? '#3498db' : TEXT_SECONDARY};font-size:11px;padding:4px;">${d}</div>`
+        `<div style="color:${i === 0 ? '#CE2029' : i === 6 ? '#1C2541' : TEXT_SECONDARY};font-size:11px;padding:4px;">${d}</div>`
       ).join('')}
 
       ${Array(firstDay).fill('<div></div>').join('')}
@@ -1209,8 +1209,8 @@ async function renderAttendanceCalendar(container, month, staff, params) {
         const isSaturday = dow === 6;
 
         let cellColor = TEXT_PRIMARY;
-        if (isSunday) cellColor = '#c0392b';
-        else if (isSaturday) cellColor = '#3498db';
+        if (isSunday) cellColor = '#CE2029';
+        else if (isSaturday) cellColor = '#1C2541';
 
         let hours = '';
         let bgColor = 'transparent';
@@ -1221,13 +1221,13 @@ async function renderAttendanceCalendar(container, month, staff, params) {
           bgColor = `${GOLD}15`;
         }
         if (rec?.synced_to_freee) {
-          synced = `<div style="font-size:8px;color:#4caf50;">✓</div>`;
+          synced = `<div style="font-size:8px;color:#006B3F;">✓</div>`;
         }
 
         return `<div data-cal-date="${dateStr}" style="padding:4px 2px;border-radius:8px;background:${bgColor};${isToday ? `border:1px solid ${GOLD};` : ''}min-height:44px;cursor:${rec ? 'pointer' : 'default'};">
           <div style="color:${cellColor};font-size:13px;font-weight:${isToday ? 'bold' : 'normal'};">${day}</div>
           ${hours}${synced}
-          ${rec ? `<button data-del-att="${rec.id}" data-del-date="${dateStr}" style="display:block;margin:2px auto 0;padding:1px 4px;border:none;background:#f4433633;color:#f44336;font-size:8px;border-radius:4px;cursor:pointer;">削除</button>` : ''}
+          ${rec ? `<button data-del-att="${rec.id}" data-del-date="${dateStr}" style="display:block;margin:2px auto 0;padding:1px 4px;border:none;background:#CE202933;color:#CE2029;font-size:8px;border-radius:4px;cursor:pointer;">削除</button>` : ''}
         </div>`;
       }).join('')}
     </div>
@@ -1363,7 +1363,7 @@ function renderLeaveNotice(container, staff) {
     </div>
 
     ${label('理由')}
-    <textarea id="leaveReason" rows="3" placeholder="理由を入力" style="width:100%;padding:10px 12px;border-radius:8px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+    <textarea id="leaveReason" rows="3" placeholder="理由を入力" style="width:100%;padding:10px 12px;border-radius:8px;background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
 
     <div style="margin-top:20px;">
       ${btn('届出を送信', 'btnSubmitLeave')}
@@ -1448,7 +1448,7 @@ function renderChatRooms(container) {
     <div style="display:flex;flex-direction:column;gap:8px;">
       ${GOOGLE_CHAT_ROOMS.map(room => card(`
         <a href="${room.url}" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:12px;text-decoration:none;">
-          <div style="width:44px;height:44px;border-radius:12px;background:#111;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${room.icon}</div>
+          <div style="width:44px;height:44px;border-radius:12px;background:#f5f5f5;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">${room.icon}</div>
           <div style="flex:1;">
             <div style="color:${TEXT_PRIMARY};font-size:15px;font-weight:bold;">${escapeHtml(room.name)}</div>
             <div style="color:${TEXT_MUTED};font-size:11px;">タップで開く</div>
@@ -1469,7 +1469,7 @@ function renderAIChat(container, staff) {
     ${sectionTitle('AI業務相談')}
 
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;">
-      ${AI_QUICK_TEMPLATES.map((t, i) => `<button data-tpl="${i}" style="padding:6px 12px;border-radius:16px;background:#222;color:${TEXT_SECONDARY};border:1px solid ${BORDER};font-size:12px;cursor:pointer;white-space:nowrap;">${escapeHtml(t)}</button>`).join('')}
+      ${AI_QUICK_TEMPLATES.map((t, i) => `<button data-tpl="${i}" style="padding:6px 12px;border-radius:16px;background:#e8e5dd;color:${TEXT_SECONDARY};border:1px solid ${BORDER};font-size:12px;cursor:pointer;white-space:nowrap;">${escapeHtml(t)}</button>`).join('')}
     </div>
 
     <div id="aiMessages" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:12px;padding:4px;">
@@ -1478,7 +1478,7 @@ function renderAIChat(container, staff) {
     </div>
 
     <div style="display:flex;gap:8px;">
-      <textarea id="aiInput" rows="1" placeholder="質問を入力..." style="flex:1;padding:10px 12px;border-radius:12px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:none;min-height:42px;max-height:120px;box-sizing:border-box;"></textarea>
+      <textarea id="aiInput" rows="1" placeholder="質問を入力..." style="flex:1;padding:10px 12px;border-radius:12px;background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:none;min-height:42px;max-height:120px;box-sizing:border-box;"></textarea>
       <button id="aiSend" style="width:42px;height:42px;border-radius:50%;background:${GOLD};border:none;color:#000;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;">▶</button>
     </div>
   `;
@@ -1632,8 +1632,8 @@ async function renderCalendar(container, params, staff) {
     const s = dayStats[dateStr];
     if (!s) return 'transparent';
     if (s.total >= 20) return '#e74c3c33'; // red bottleneck
-    if (s.total >= 10) return '#ff980033'; // yellow heavy
-    return '#4caf5033'; // green normal
+    if (s.total >= 10) return '#C5A25833'; // yellow heavy
+    return '#006B3F33'; // green normal
   }
 
   function getDayIndicators(dateStr) {
@@ -1652,19 +1652,19 @@ async function renderCalendar(container, params, staff) {
     dayDetail = card(`
       ${sectionTitle('📋 ' + selectedDay + ' の活動')}
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
-        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+        <div style="text-align:center;padding:8px;background:#f5f5f5;border-radius:8px;">
           <div style="color:${TEXT_SECONDARY};font-size:11px;">分荷</div>
           <div style="color:${GOLD};font-size:20px;font-weight:bold;">${s.bunka}<span style="font-size:12px;color:${TEXT_MUTED};">件</span></div>
         </div>
-        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+        <div style="text-align:center;padding:8px;background:#f5f5f5;border-radius:8px;">
           <div style="color:${TEXT_SECONDARY};font-size:11px;">出品</div>
           <div style="color:${GOLD};font-size:20px;font-weight:bold;">${s.shuppin}<span style="font-size:12px;color:${TEXT_MUTED};">件</span></div>
         </div>
-        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+        <div style="text-align:center;padding:8px;background:#f5f5f5;border-radius:8px;">
           <div style="color:${TEXT_SECONDARY};font-size:11px;">梱包</div>
           <div style="color:${GOLD};font-size:20px;font-weight:bold;">${s.konpo}<span style="font-size:12px;color:${TEXT_MUTED};">件</span></div>
         </div>
-        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+        <div style="text-align:center;padding:8px;background:#f5f5f5;border-radius:8px;">
           <div style="color:${TEXT_SECONDARY};font-size:11px;">出荷</div>
           <div style="color:${GOLD};font-size:20px;font-weight:bold;">${s.shukka}<span style="font-size:12px;color:${TEXT_MUTED};">件</span></div>
         </div>
@@ -1683,8 +1683,8 @@ async function renderCalendar(container, params, staff) {
     <!-- 凡例 -->
     ${card(`
       <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">
-        <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:#4caf5033;border:1px solid #4caf50;"></div><span style="color:${TEXT_SECONDARY};font-size:11px;">通常</span></div>
-        <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:#ff980033;border:1px solid #ff9800;"></div><span style="color:${TEXT_SECONDARY};font-size:11px;">多忙</span></div>
+        <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:#006B3F33;border:1px solid #006B3F;"></div><span style="color:${TEXT_SECONDARY};font-size:11px;">通常</span></div>
+        <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:#C5A25833;border:1px solid #C5A258;"></div><span style="color:${TEXT_SECONDARY};font-size:11px;">多忙</span></div>
         <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:#e74c3c33;border:1px solid #e74c3c;"></div><span style="color:${TEXT_SECONDARY};font-size:11px;">ボトルネック</span></div>
         <div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;">🚚出荷</span><span style="font-size:11px;">📷分荷</span></div>
       </div>
@@ -1692,7 +1692,7 @@ async function renderCalendar(container, params, staff) {
 
     <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">
       ${['日', '月', '火', '水', '木', '金', '土'].map((d, i) =>
-        `<div style="color:${i === 0 ? '#c0392b' : i === 6 ? '#3498db' : TEXT_SECONDARY};font-size:11px;padding:4px;">${d}</div>`
+        `<div style="color:${i === 0 ? '#CE2029' : i === 6 ? '#1C2541' : TEXT_SECONDARY};font-size:11px;padding:4px;">${d}</div>`
       ).join('')}
 
       ${Array(firstDay).fill('<div></div>').join('')}
@@ -1707,8 +1707,8 @@ async function renderCalendar(container, params, staff) {
         const isSaturday = dow === 6;
 
         let cellColor = TEXT_PRIMARY;
-        if (isSunday) cellColor = '#c0392b';
-        else if (isSaturday) cellColor = '#3498db';
+        if (isSunday) cellColor = '#CE2029';
+        else if (isSaturday) cellColor = '#1C2541';
 
         const bgColor = getWorkloadColor(dateStr);
         const indicators = getDayIndicators(dateStr);
@@ -1765,7 +1765,7 @@ async function renderConsignmentReport(container, params, staff) {
     ${sectionTitle('委託販売レポート')}
     ${card(`
       <div style="display:flex;gap:8px;margin-bottom:12px;">
-        ${partners.map(p => `<button class="consign-partner-btn" data-partner="${escapeHtml(p)}" style="flex:1;padding:10px;border-radius:8px;border:none;font-size:13px;font-weight:bold;cursor:pointer;${p === selectedPartner ? `background:${GOLD};color:#000;` : `background:#222;color:${TEXT_SECONDARY};`}">${escapeHtml(p)}</button>`).join('')}
+        ${partners.map(p => `<button class="consign-partner-btn" data-partner="${escapeHtml(p)}" style="flex:1;padding:10px;border-radius:8px;border:none;font-size:13px;font-weight:bold;cursor:pointer;${p === selectedPartner ? `background:${GOLD};color:#000;` : `background:#e8e5dd;color:${TEXT_SECONDARY};`}">${escapeHtml(p)}</button>`).join('')}
       </div>
       <div style="margin-bottom:8px;">
         ${label('対象月')}
@@ -1847,8 +1847,8 @@ async function renderConsignmentReport(container, params, staff) {
         <td style="padding:8px 4px;color:${GOLD};font-size:12px;white-space:nowrap;">${escapeHtml(item.mgmt_num)}</td>
         <td style="padding:8px 4px;color:${TEXT_PRIMARY};font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.product_name || '')}</td>
         <td style="padding:8px 4px;color:${TEXT_PRIMARY};font-size:12px;text-align:right;">${formatPrice(sold)}</td>
-        <td style="padding:8px 4px;color:#f44336;font-size:12px;text-align:right;">${formatPrice(fee)}</td>
-        <td style="padding:8px 4px;color:#4caf50;font-size:12px;text-align:right;">${formatPrice(tkbAfterFee)}</td>
+        <td style="padding:8px 4px;color:#CE2029;font-size:12px;text-align:right;">${formatPrice(fee)}</td>
+        <td style="padding:8px 4px;color:#006B3F;font-size:12px;text-align:right;">${formatPrice(tkbAfterFee)}</td>
         <td style="padding:8px 4px;color:${TEXT_PRIMARY};font-size:12px;text-align:right;">${formatPrice(partnerPay)}</td>
       </tr>`;
     }).join('');
@@ -1874,8 +1874,8 @@ async function renderConsignmentReport(container, params, staff) {
                 <tr style="border-top:2px solid ${GOLD};">
                   <td colspan="2" style="padding:10px 4px;color:${GOLD};font-size:13px;font-weight:bold;">合計</td>
                   <td style="padding:10px 4px;color:${TEXT_PRIMARY};font-size:13px;font-weight:bold;text-align:right;">${formatPrice(totalSold)}</td>
-                  <td style="padding:10px 4px;color:#f44336;font-size:13px;font-weight:bold;text-align:right;">${formatPrice(totalFee)}</td>
-                  <td style="padding:10px 4px;color:#4caf50;font-size:13px;font-weight:bold;text-align:right;">${formatPrice(totalTkbShare)}</td>
+                  <td style="padding:10px 4px;color:#CE2029;font-size:13px;font-weight:bold;text-align:right;">${formatPrice(totalFee)}</td>
+                  <td style="padding:10px 4px;color:#006B3F;font-size:13px;font-weight:bold;text-align:right;">${formatPrice(totalTkbShare)}</td>
                   <td style="padding:10px 4px;color:${TEXT_PRIMARY};font-size:13px;font-weight:bold;text-align:right;">${formatPrice(totalPartnerShare)}</td>
                 </tr>
               </tfoot>
@@ -1895,7 +1895,7 @@ async function renderConsignmentReport(container, params, staff) {
                   <div style="color:${TEXT_PRIMARY};font-size:13px;">${escapeHtml(item.product_name || '')}</div>
                 </div>
                 <div style="text-align:right;">
-                  <div style="color:#ff9800;font-size:12px;font-weight:bold;">${escapeHtml(item.return_status)}</div>
+                  <div style="color:#C5A258;font-size:12px;font-weight:bold;">${escapeHtml(item.return_status)}</div>
                   <div style="color:${TEXT_MUTED};font-size:11px;">${escapeHtml(item.return_reason || '')}</div>
                 </div>
               </div>
@@ -1949,7 +1949,7 @@ async function renderConsignmentReport(container, params, staff) {
     }
   } catch (e) {
     console.error('委託レポート取得エラー:', e);
-    reportBody.innerHTML = `<div style="text-align:center;color:#f44336;padding:20px;">データの取得に失敗しました</div>`;
+    reportBody.innerHTML = `<div style="text-align:center;color:#CE2029;padding:20px;">データの取得に失敗しました</div>`;
   }
 }
 
@@ -2019,7 +2019,7 @@ async function renderKPI(container, params, staff) {
 
 function kpiCard(label, actual, target, icon) {
   const pct = target ? Math.min(Math.round(actual / target * 100), 100) : null;
-  const color = pct !== null ? (pct >= 100 ? '#4caf50' : pct >= 50 ? '#ff9800' : '#e74c3c') : GOLD;
+  const color = pct !== null ? (pct >= 100 ? '#006B3F' : pct >= 50 ? '#C5A258' : '#CE2029') : GOLD;
 
   return card(`
     <div style="text-align:center;">
@@ -2028,7 +2028,7 @@ function kpiCard(label, actual, target, icon) {
       <div style="color:${color};font-size:24px;font-weight:bold;">${actual}</div>
       ${target ? `
         <div style="color:${TEXT_MUTED};font-size:11px;">目標: ${target}</div>
-        <div style="height:4px;background:#222;border-radius:2px;margin-top:6px;overflow:hidden;">
+        <div style="height:4px;background:#e8e5dd;border-radius:2px;margin-top:6px;overflow:hidden;">
           <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width 0.5s;"></div>
         </div>
         <div style="color:${color};font-size:11px;margin-top:2px;font-weight:bold;">${pct}%</div>
@@ -2046,7 +2046,7 @@ function renderStatusDistribution(counts) {
     const barW = Math.max(pct, 2);
     return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
       <div style="width:80px;font-size:11px;color:${TEXT_SECONDARY};text-align:right;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${s}</div>
-      <div style="flex:1;height:14px;background:#222;border-radius:3px;overflow:hidden;">
+      <div style="flex:1;height:14px;background:#e8e5dd;border-radius:3px;overflow:hidden;">
         <div style="height:100%;width:${barW}%;background:${GOLD};border-radius:3px;min-width:2px;"></div>
       </div>
       <div style="width:50px;font-size:12px;color:${TEXT_PRIMARY};text-align:right;flex-shrink:0;">${count}<span style="color:${TEXT_MUTED};font-size:10px;margin-left:2px;">(${pct}%)</span></div>
@@ -2112,7 +2112,7 @@ async function renderStaffTimeline(container) {
       let statusColor = TEXT_MUTED;
       if (t.record?.clock_in && t.record?.clock_out) {
         statusText = `${t.record.clock_in} - ${t.record.clock_out}`;
-        statusColor = '#4caf50';
+        statusColor = '#006B3F';
       } else if (t.record?.clock_in) {
         statusText = `${t.record.clock_in} - 勤務中`;
         statusColor = GOLD;
@@ -2135,10 +2135,10 @@ async function renderStaffTimeline(container) {
 // 声ポイント制度モジュール
 // ============================================================
 const VOICE_STATUS_LABELS = {
-  '投稿': { color: '#2196f3', bg: '#2196f322' },
-  '受理': { color: '#ff9800', bg: '#ff980022' },
-  '採用': { color: '#4caf50', bg: '#4caf5022' },
-  '実装': { color: '#9c27b0', bg: '#9c27b022' },
+  '投稿': { color: '#1C2541', bg: '#2196f322' },
+  '受理': { color: '#C5A258', bg: '#C5A25822' },
+  '採用': { color: '#006B3F', bg: '#006B3F22' },
+  '実装': { color: '#7B2D8E', bg: '#9c27b022' },
   '優秀': { color: '#C5A258', bg: '#C5A25822' },
 };
 
@@ -2174,7 +2174,7 @@ async function renderVoice(container, params, staff) {
     <!-- 新規提案フォーム -->
     ${card(`
       ${sectionTitle('新しい提案を投稿')}
-      <textarea id="voiceContent" rows="3" placeholder="改善提案、気づいたこと、アイデアなどを自由に書いてください" style="width:100%;padding:10px 12px;border-radius:8px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+      <textarea id="voiceContent" rows="3" placeholder="改善提案、気づいたこと、アイデアなどを自由に書いてください" style="width:100%;padding:10px 12px;border-radius:8px;background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
       <div style="margin-top:12px;">
         ${btn('提案を投稿する', 'btnSubmitVoice')}
       </div>
@@ -2265,22 +2265,22 @@ async function renderKnowledge(container, params, staff) {
     knowledgeItems = data || [];
   }
 
-  const categoryColors = { '相場': '#2196f3', '業者': '#ff9800', 'コツ': '#4caf50', 'メモ': '#9c27b0' };
+  const categoryColors = { '相場': '#1C2541', '業者': '#C5A258', 'コツ': '#006B3F', 'メモ': '#7B2D8E' };
 
   container.innerHTML = `
     <!-- 検索バー -->
     <div style="position:relative;margin-bottom:12px;">
       <input id="knowledgeSearch" type="search" placeholder="知識を検索..."
         value="${escapeHtml(searchQuery)}"
-        style="width:100%;box-sizing:border-box;padding:10px 12px 10px 36px;border-radius:10px;border:1px solid #333;background:#111;color:#e0e0e0;font-size:14px;outline:none;" />
+        style="width:100%;box-sizing:border-box;padding:10px 12px 10px 36px;border-radius:10px;border:1px solid ${BORDER};background:#ffffff;color:${TEXT_PRIMARY};font-size:14px;outline:none;" />
       <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#666;font-size:16px;">🔍</span>
     </div>
 
     <!-- カテゴリフィルタ -->
     <div style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;">
-      <button data-kcat="" style="padding:6px 14px;border-radius:20px;border:none;font-size:12px;cursor:pointer;white-space:nowrap;${!selectedCategory ? `background:${GOLD};color:#000;font-weight:bold;` : 'background:#222;color:#888;'}">全て</button>
+      <button data-kcat="" style="padding:6px 14px;border-radius:20px;border:none;font-size:12px;cursor:pointer;white-space:nowrap;${!selectedCategory ? `background:${GOLD};color:#000;font-weight:bold;` : 'background:#e8e5dd;color:#888;'}">全て</button>
       ${KNOWLEDGE_CATEGORIES.map(cat => `
-        <button data-kcat="${cat}" style="padding:6px 14px;border-radius:20px;border:none;font-size:12px;cursor:pointer;white-space:nowrap;${selectedCategory === cat ? `background:${categoryColors[cat] || GOLD};color:#000;font-weight:bold;` : `background:#222;color:${categoryColors[cat] || '#888'};`}">${cat}</button>
+        <button data-kcat="${cat}" style="padding:6px 14px;border-radius:20px;border:none;font-size:12px;cursor:pointer;white-space:nowrap;${selectedCategory === cat ? `background:${categoryColors[cat] || GOLD};color:#000;font-weight:bold;` : `background:#e8e5dd;color:${categoryColors[cat] || '#5a6272'};`}">${cat}</button>
       `).join('')}
     </div>
 
@@ -2295,7 +2295,7 @@ async function renderKnowledge(container, params, staff) {
         ${inputField('kNewTitle', 'text', '例: ルイヴィトン モノグラム 相場目安')}
 
         ${label('内容')}
-        <textarea id="kNewContent" rows="4" placeholder="具体的な内容を記載" style="width:100%;padding:10px 12px;border-radius:8px;background:#111;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
+        <textarea id="kNewContent" rows="4" placeholder="具体的な内容を記載" style="width:100%;padding:10px 12px;border-radius:8px;background:#f5f5f5;color:${TEXT_PRIMARY};border:1px solid ${BORDER};font-size:14px;resize:vertical;box-sizing:border-box;"></textarea>
 
         <div style="margin-top:12px;">
           ${btn('保存する', 'btnSaveKnowledge')}
@@ -2458,19 +2458,19 @@ async function renderMyPage(container, params, staff) {
     ${sectionTitle('📊 今月の個人実績')}
     ${card(`
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
-        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+        <div style="text-align:center;padding:8px;background:#f5f5f5;border-radius:8px;">
           <div style="color:${TEXT_SECONDARY};font-size:10px;">分荷</div>
           <div style="color:${GOLD};font-size:20px;font-weight:bold;">${myMonthStats.bunka}<span style="font-size:10px;color:${TEXT_MUTED};">件</span></div>
         </div>
-        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+        <div style="text-align:center;padding:8px;background:#f5f5f5;border-radius:8px;">
           <div style="color:${TEXT_SECONDARY};font-size:10px;">出品</div>
           <div style="color:${GOLD};font-size:20px;font-weight:bold;">${myMonthStats.shuppin}<span style="font-size:10px;color:${TEXT_MUTED};">件</span></div>
         </div>
-        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+        <div style="text-align:center;padding:8px;background:#f5f5f5;border-radius:8px;">
           <div style="color:${TEXT_SECONDARY};font-size:10px;">梱包</div>
           <div style="color:${GOLD};font-size:20px;font-weight:bold;">${myMonthStats.konpo}<span style="font-size:10px;color:${TEXT_MUTED};">件</span></div>
         </div>
-        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+        <div style="text-align:center;padding:8px;background:#f5f5f5;border-radius:8px;">
           <div style="color:${TEXT_SECONDARY};font-size:10px;">出荷</div>
           <div style="color:${GOLD};font-size:20px;font-weight:bold;">${myMonthStats.shukka}<span style="font-size:10px;color:${TEXT_MUTED};">件</span></div>
         </div>
