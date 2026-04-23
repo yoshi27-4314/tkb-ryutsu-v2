@@ -25,10 +25,14 @@ const STORAGE_BASES = [
 const STORAGE_AREAS = {
   atsumi: [
     ...Array.from({ length: 28 }, (_, i) => `A${i + 1}`),
-    '倉庫奥', '2階',
+    'A1横', 'A1前', 'A1階奥', '倉庫奥', '倉庫入口', '2階',
   ],
-  honjo: ['H1', 'H2', 'H3', '倉庫奥'],
-  yanaizu: ['Y1', 'Y2', 'Y3'],
+  honjo: [
+    ...Array.from({ length: 10 }, (_, i) => `H${i + 1}`),
+  ],
+  yanaizu: [
+    ...Array.from({ length: 5 }, (_, i) => `Y${i + 1}`),
+  ],
 };
 
 const PHOTO_SLOTS = [
@@ -49,7 +53,8 @@ function resetState() {
     step: 'source',       // source → capture → result → photo → storage → done
     sourceType: null,
     sourceCategory: null,
-    judgmentPhoto: null,   // base64
+    judgmentPhoto: null,   // base64 (最初の1枚、互換用)
+    capturePhotos: [],     // 複数撮影用 base64配列
     aiResult: null,
     mgmtNum: null,
     itemId: null,
@@ -217,9 +222,17 @@ function renderCapture() {
 
       <!-- 撮影エリア -->
       <div id="captureArea" style="background:#1a1a2e;border:2px dashed #333;border-radius:16px;
-           padding:40px 20px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color 0.2s;">
-        ${state.judgmentPhoto
-          ? `<img src="${state.judgmentPhoto}" style="max-width:100%;max-height:300px;border-radius:8px;">`
+           padding:${state.capturePhotos.length > 0 ? '20px' : '40px'} 20px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color 0.2s;">
+        ${state.capturePhotos.length > 0
+          ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;">
+               ${state.capturePhotos.map((p, i) => `
+                 <div style="position:relative;flex-shrink:0;">
+                   <img src="${p}" style="width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid #333;">
+                   <div style="position:absolute;top:2px;left:2px;background:rgba(0,0,0,0.6);color:#C5A258;font-size:9px;padding:1px 4px;border-radius:4px;">${i + 1}</div>
+                 </div>
+               `).join('')}
+             </div>
+             <p style="color:#aaa;font-size:13px;">タップして追加撮影（${state.capturePhotos.length}枚撮影済み）</p>`
           : `<div style="font-size:48px;margin-bottom:12px;">📷</div>
              <p style="color:#aaa;font-size:15px;font-weight:bold;">タップして撮影</p>
              <p style="color:#666;font-size:12px;">商品全体が映るように撮ってください</p>`
@@ -242,13 +255,13 @@ function renderCapture() {
       ` : ''}
 
       <!-- AI判定ボタン -->
-      <button id="judgeBtn" ${!state.judgmentPhoto ? 'disabled' : ''}
+      <button id="judgeBtn" ${state.capturePhotos.length === 0 ? 'disabled' : ''}
         style="width:100%;padding:16px;border-radius:12px;font-size:16px;font-weight:bold;
                border:none;cursor:pointer;transition:all 0.2s;
-               ${state.judgmentPhoto
+               ${state.capturePhotos.length > 0
                  ? 'background:#C5A258;color:#000;'
                  : 'background:#333;color:#666;cursor:not-allowed;'}">
-        AI判定を実行
+        AI判定を実行${state.capturePhotos.length > 1 ? `（${state.capturePhotos.length}枚）` : ''}
       </button>
     </div>
   `;
@@ -280,7 +293,9 @@ async function handleCapturePhoto() {
     if (!file) return;
     showToast('画像を処理中...');
     const base64 = await fileToBase64(file);
-    state.judgmentPhoto = await resizeImage(base64, 1200);
+    const resized = await resizeImage(base64, 1200);
+    state.capturePhotos.push(resized);
+    state.judgmentPhoto = state.capturePhotos[0]; // 互換用: 最初の1枚
     render();
   } catch (e) {
     console.error('撮影エラー:', e);
@@ -322,14 +337,16 @@ async function handleAIJudgment() {
   showLoading(containerRef, 'AI判定中... 商品を分析しています');
 
   try {
+    const allPhotos = state.capturePhotos.length > 0 ? state.capturePhotos : (state.judgmentPhoto ? [state.judgmentPhoto] : []);
     const body = {
-      image: state.judgmentPhoto,
-      images: [state.judgmentPhoto],
+      image: allPhotos[0] || null,
+      images: allPhotos,
       step: state.barcode ? 'book' : 'judge',
       context: {
         staffName: staff.name,
         sourceId: state.sourceType,
         bookInfo: state.barcode ? { isbn: state.barcode } : undefined,
+        hint: 'メーカー名・ブランド名・型番を可能な限り特定してください。ロゴや刻印、ラベルから読み取れる情報を全て活用してください。',
       },
     };
 
@@ -361,8 +378,8 @@ async function handleAIJudgment() {
       channel: j.channel || '',
       estimatedPriceMin: j.estimatedPrice?.min ?? j.estimatedPriceMin ?? 0,
       estimatedPriceMax: j.estimatedPrice?.max ?? j.estimatedPriceMax ?? 0,
-      startPrice: j.startPrice ?? 0,
-      targetPrice: j.targetPrice ?? 0,
+      startPrice: j.startPrice ?? j.estimatedPrice?.min ?? 0,
+      targetPrice: j.targetPrice ?? j.mokuhyoKakaku ?? Math.round((j.estimatedPrice?.max || j.startPrice || 0) * 1.3) || 0,
       score: j.score ?? 0,
       confidence: j.confidence ?? (j.needsApproval ? 0.5 : 0.8),
       explanation: j.explanation || '',
@@ -381,7 +398,7 @@ async function handleAIJudgment() {
       e.message,
       [
         { label: '再試行', action: () => { state.step = 'capture'; render(); handleAIJudgment(); } },
-        { label: '撮り直す', action: () => { state.step = 'capture'; state.judgmentPhoto = null; render(); } },
+        { label: '撮り直す', action: () => { state.step = 'capture'; state.judgmentPhoto = null; state.capturePhotos = []; render(); } },
       ]
     );
   }
@@ -412,9 +429,13 @@ function renderResult() {
       <div style="display:flex;gap:12px;margin-bottom:16px;">
         ${state.judgmentPhoto ? `<img src="${state.judgmentPhoto}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #333;">` : ''}
         <div style="flex:1;">
-          <p style="color:#e0e0e0;font-size:17px;font-weight:bold;margin-bottom:2px;">${escapeHtml(r.productName || '不明')}</p>
-          <p style="color:#aaa;font-size:13px;margin:0;">${escapeHtml(r.maker || '')} ${escapeHtml(r.modelNumber || '')}</p>
-          <p style="color:#888;font-size:12px;margin:0;">${escapeHtml(r.category || '')}</p>
+          <input type="text" id="editProductName" value="${escapeHtml(r.productName || '')}" placeholder="商品名"
+            style="background:#0d1117;border:1px solid #333;border-radius:6px;color:#e0e0e0;padding:6px 8px;font-size:15px;font-weight:bold;width:100%;outline:none;box-sizing:border-box;">
+          <input type="text" id="editMaker" value="${escapeHtml(r.maker || '')}" placeholder="メーカー名"
+            style="background:#0d1117;border:1px solid #333;border-radius:6px;color:#aaa;padding:4px 8px;font-size:13px;width:100%;outline:none;margin-top:4px;box-sizing:border-box;">
+          <input type="text" id="editModelNumber" value="${escapeHtml(r.modelNumber || '')}" placeholder="品番・型式"
+            style="background:#0d1117;border:1px solid #333;border-radius:6px;color:#aaa;padding:4px 8px;font-size:13px;width:100%;outline:none;margin-top:4px;box-sizing:border-box;">
+          <p style="color:#888;font-size:12px;margin:4px 0 0;">${escapeHtml(r.category || '')}</p>
         </div>
       </div>
 
@@ -534,6 +555,7 @@ function renderResult() {
   });
   containerRef.querySelector('#resultReshoot').addEventListener('click', () => {
     state.judgmentPhoto = null;
+    state.capturePhotos = [];
     state.aiResult = null;
     state.step = 'capture';
     render();
@@ -569,6 +591,11 @@ function renderResult() {
       state.operationNote = e.target.value;
     });
   }
+
+  // 商品名・メーカー・型番の編集
+  containerRef.querySelector('#editProductName')?.addEventListener('input', (e) => { state.aiResult.productName = e.target.value; });
+  containerRef.querySelector('#editMaker')?.addEventListener('input', (e) => { state.aiResult.maker = e.target.value; });
+  containerRef.querySelector('#editModelNumber')?.addEventListener('input', (e) => { state.aiResult.modelNumber = e.target.value; });
 
   addTouchFeedback(containerRef.querySelector('#resultOk'));
   addTouchFeedback(containerRef.querySelector('#resultConsult'));
@@ -611,6 +638,13 @@ function checkNeedsApproval(result) {
 // ── 確定処理 ─────────────────────────────────────
 
 async function handleConfirm(needsApproval) {
+  // 重複登録防止: 既に管理番号が採番済みなら次のステップへ
+  if (state.mgmtNum) {
+    state.step = 'photo';
+    render();
+    return;
+  }
+
   const staff = getCurrentStaff();
   if (!staff) return;
   const r = state.aiResult;
@@ -916,11 +950,12 @@ function renderPhotoStep() {
 function measureInput(field, label, unit) {
   return `
     <div style="position:relative;">
+      <label style="font-size:11px;color:#888;display:block;margin-bottom:3px;">${label}</label>
       <input class="measure-input" data-field="${field}" type="number" inputmode="decimal" step="0.1"
-        placeholder="${label}" value="${state.measurements[field] || ''}"
+        placeholder="0" value="${state.measurements[field] || ''}"
         style="width:100%;background:#111;border:1px solid #333;border-radius:8px;color:#e0e0e0;
-               padding:10px 36px 10px 12px;font-size:14px;outline:none;box-sizing:border-box;">
-      <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#666;font-size:12px;">${unit}</span>
+               padding:10px 40px 10px 12px;font-size:14px;outline:none;box-sizing:border-box;">
+      <span style="position:absolute;right:10px;bottom:10px;color:#C5A258;font-size:13px;font-weight:bold;">${unit}</span>
     </div>
   `;
 }

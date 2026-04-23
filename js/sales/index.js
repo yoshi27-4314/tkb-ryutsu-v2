@@ -25,7 +25,7 @@ let sessionPhotos = [];         // セッション中に追加した写真（bas
 
 // タブ → ステータスフィルタ
 const TAB_FILTERS = {
-  list_wait: [CONFIG.STATUS.LIST_WAIT],
+  list_wait: [CONFIG.STATUS.LIST_WAIT, CONFIG.STATUS.JUDGED, CONFIG.STATUS.PHOTO_WAIT],
   listing:   [CONFIG.STATUS.LISTING_WORK, CONFIG.STATUS.LISTING],
   all:       null,
 };
@@ -158,7 +158,7 @@ async function loadItems(container) {
       const item = itemsCache.find(i => i.mgmt_num === mgmtNum);
       if (!item) return;
 
-      if (item.status === CONFIG.STATUS.LIST_WAIT || item.status === CONFIG.STATUS.LISTING_WORK) {
+      if (item.status === CONFIG.STATUS.LIST_WAIT || item.status === CONFIG.STATUS.LISTING_WORK || item.status === CONFIG.STATUS.JUDGED || item.status === CONFIG.STATUS.PHOTO_WAIT) {
         openListingWork(container, mgmtNum);
       } else if (item.status === CONFIG.STATUS.LISTING) {
         openListingDetail(container, item);
