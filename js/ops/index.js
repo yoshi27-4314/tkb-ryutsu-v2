@@ -126,6 +126,7 @@ export function renderOps(container, params = {}) {
     { id: 'expense', label: '💰 経費' },
     { id: 'attendance', label: '🕐 勤怠' },
     { id: 'chat', label: '💬 チャット' },
+    { id: 'calendar', label: '📅 カレンダー' },
     { id: 'kpi', label: '📊 KPI' },
     { id: 'voice', label: '🗣 声' },
     { id: 'knowledge', label: '📚 知識' },
@@ -152,6 +153,7 @@ export function renderOps(container, params = {}) {
     case 'expense': renderExpense(content, params, staff); break;
     case 'attendance': renderAttendance(content, params, staff); break;
     case 'chat': renderChat(content, params, staff); break;
+    case 'calendar': renderCalendar(content, params, staff); break;
     case 'kpi': renderKPI(content, params, staff); break;
     case 'voice': renderVoice(content, params, staff); break;
     case 'knowledge': renderKnowledge(content, params, staff); break;
@@ -173,6 +175,7 @@ function renderExpense(container, params, staff) {
       { id: 'register', label: '📝 登録' },
       { id: 'list', label: '📋 一覧' },
       { id: 'summary', label: '📊 集計' },
+      { id: 'balance', label: '💵 残高' },
     ], subTab, 'data-exptab')}
     <div id="expenseBody"></div>
   `;
@@ -189,6 +192,7 @@ function renderExpense(container, params, staff) {
     case 'register': renderExpenseRegister(body, month, department, staff); break;
     case 'list': renderExpenseList(body, month, department, staff); break;
     case 'summary': renderExpenseSummary(body, month, department, staff); break;
+    case 'balance': renderPettyCashBalance(body, month, department, staff); break;
   }
 }
 
@@ -230,6 +234,11 @@ function renderExpenseRegister(container, month, department, staff) {
     ${label('支払方法')}
     ${selectBox('expPayment', PAYMENT_METHODS, '現金')}
 
+    <div id="paidByRow" style="display:none;">
+      ${label('立替者（誰が立て替えた？）')}
+      ${inputField('expPaidBy', 'text', '立替者の名前', staff.name)}
+    </div>
+
     ${label('インボイス番号（T+13桁）')}
     ${inputField('expInvoice', 'text', 'T0000000000000')}
 
@@ -240,6 +249,15 @@ function renderExpenseRegister(container, month, department, staff) {
       ${btn('登録する', 'btnSaveExpense')}
     </div>
   `);
+
+  // 立替者フィールド表示制御
+  const paymentSelect = container.querySelector('#expPayment');
+  const paidByRow = container.querySelector('#paidByRow');
+  paymentSelect.addEventListener('change', () => {
+    paidByRow.style.display = paymentSelect.value === '立替' ? '' : 'none';
+  });
+  // 初期表示
+  if (paymentSelect.value === '立替') paidByRow.style.display = '';
 
   // レシートOCR
   container.querySelector('#btnOcr').addEventListener('click', async () => {
@@ -287,6 +305,7 @@ function renderExpenseRegister(container, month, department, staff) {
     const taxRate = parseInt(container.querySelector('#expTaxRate').value);
     const category = container.querySelector('#expCategory').value;
     const payment = container.querySelector('#expPayment').value;
+    const paidBy = container.querySelector('#expPaidBy').value.trim();
     const invoice = container.querySelector('#expInvoice').value.trim();
     const memo = container.querySelector('#expMemo').value.trim();
 
@@ -313,6 +332,8 @@ function renderExpenseRegister(container, month, department, staff) {
       tax_rate: taxRate,
       category,
       payment_method: payment,
+      paid_by: payment === '立替' ? (paidBy || staff.name) : null,
+      is_settled: false,
       invoice_number: invoice || null,
       memo: memo || null,
     };
@@ -399,11 +420,16 @@ async function renderExpenseList(container, month, department, staff) {
         <div style="display:flex;justify-content:space-between;align-items:flex-start;">
           <div style="flex:1;min-width:0;">
             <div style="color:${TEXT_PRIMARY};font-size:14px;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(e.store_name || '')}</div>
-            <div style="color:${TEXT_SECONDARY};font-size:12px;margin-top:2px;">${escapeHtml(e.category || '')} ・ ${escapeHtml(e.payment_method || '')}</div>
+            <div style="color:${TEXT_SECONDARY};font-size:12px;margin-top:2px;">${escapeHtml(e.category || '')} ・ ${escapeHtml(e.payment_method || '')}${e.payment_method === '立替' && e.paid_by ? ` ・ 立替: ${escapeHtml(e.paid_by)}` : ''}</div>
             <div style="color:${TEXT_MUTED};font-size:11px;margin-top:2px;">
               ${formatDate(e.expense_date)} ・ ${escapeHtml(e.staff_name || '')}
               ${e.invoice_number ? ` ・ ${escapeHtml(e.invoice_number)}` : ''}
             </div>
+            ${e.payment_method === '立替' ? `
+              <div style="margin-top:6px;">
+                <button data-settle-id="${e.id}" style="padding:4px 12px;border-radius:12px;border:none;font-size:11px;cursor:pointer;${e.is_settled ? 'background:#4caf5033;color:#4caf50;' : 'background:#ff980033;color:#ff9800;'}">${e.is_settled ? '✓ 精算済み' : '未精算 → 精算済みにする'}</button>
+              </div>
+            ` : ''}
           </div>
           <div style="text-align:right;flex-shrink:0;margin-left:12px;">
             <div style="color:${GOLD};font-size:16px;font-weight:bold;">${formatPrice(e.amount)}</div>
@@ -416,6 +442,32 @@ async function renderExpenseList(container, month, department, staff) {
 
   container.querySelector('#expListMonth').addEventListener('change', (e) => {
     renderExpenseList(container, e.target.value, department, staff);
+  });
+
+  // 精算トグルボタン
+  container.querySelectorAll('[data-settle-id]').forEach(el => {
+    el.addEventListener('click', async () => {
+      const id = el.dataset.settleId;
+      const dbClient = db.getDB();
+      if (!dbClient) { showToast('DB接続エラー'); return; }
+
+      const expense = expenses.find(e => String(e.id) === String(id));
+      if (!expense) return;
+
+      const newSettled = !expense.is_settled;
+      const { error } = await dbClient.from('expenses')
+        .update({ is_settled: newSettled })
+        .eq('id', id);
+
+      if (error) {
+        console.error('Settlement update error:', error);
+        showToast('更新に失敗しました');
+        return;
+      }
+
+      showToast(newSettled ? '精算済みにしました' : '未精算に戻しました');
+      renderExpenseList(container, month, department, staff);
+    });
   });
 }
 
@@ -463,6 +515,38 @@ async function renderExpenseSummary(container, month, department, staff) {
       </div>
     `}
 
+    <!-- 未精算セクション -->
+    ${(() => {
+      const unsettled = expenses.filter(e => e.payment_method === '立替' && !e.is_settled);
+      if (unsettled.length === 0) return '';
+      const byPerson = {};
+      for (const e of unsettled) {
+        const person = e.paid_by || e.staff_name || '不明';
+        byPerson[person] = (byPerson[person] || 0) + (e.amount || 0);
+      }
+      const unsettledTotal = unsettled.reduce((sum, e) => sum + (e.amount || 0), 0);
+      const sortedPersons = Object.entries(byPerson).sort((a, b) => b[1] - a[1]);
+      return `
+        <div style="margin-top:20px;">
+          <h3 style="color:#ff9800;font-size:15px;font-weight:bold;margin:0 0 12px 0;">⚠️ 未精算の立替（${unsettled.length}件）</h3>
+          <div style="background:#ff980011;border:1px solid #ff980033;border-radius:12px;padding:16px;margin-bottom:12px;">
+            <div style="text-align:center;margin-bottom:12px;">
+              <div style="color:#888;font-size:12px;">未精算合計</div>
+              <div style="color:#ff9800;font-size:24px;font-weight:bold;">${formatPrice(unsettledTotal)}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              ${sortedPersons.map(([person, amt]) => `
+                <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#111;border-radius:8px;">
+                  <span style="color:${TEXT_PRIMARY};font-size:14px;">👤 ${escapeHtml(person)}</span>
+                  <span style="color:#ff9800;font-size:14px;font-weight:bold;">${formatPrice(amt)}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    })()}
+
     <div style="margin-top:16px;color:${TEXT_MUTED};font-size:12px;text-align:center;">
       ${expenses.length}件の経費 ・ ${escapeHtml(department)}
     </div>
@@ -470,6 +554,137 @@ async function renderExpenseSummary(container, month, department, staff) {
 
   container.querySelector('#summaryMonth').addEventListener('change', (e) => {
     renderExpenseSummary(container, e.target.value, department, staff);
+  });
+}
+
+// 小口現金残高
+async function renderPettyCashBalance(container, month, department, staff) {
+  showLoading(container);
+
+  const dbClient = db.getDB();
+  let allExpenses = [];
+
+  if (dbClient) {
+    // Get ALL cash expenses and petty cash deposits (no month filter for balance)
+    const { data } = await dbClient.from('expenses')
+      .select('*')
+      .eq('department', department)
+      .or('payment_method.eq.現金,category.eq.小口現金入金')
+      .order('expense_date', { ascending: false });
+    allExpenses = data || [];
+  }
+
+  // Calculate balance: deposits (小口現金入金) - cash expenses
+  let totalDeposits = 0;
+  let totalCashOut = 0;
+  const transactions = [];
+
+  for (const e of allExpenses) {
+    if (e.category === '小口現金入金') {
+      const amt = Math.abs(e.amount || 0);
+      totalDeposits += amt;
+      transactions.push({ ...e, type: 'in', displayAmount: amt });
+    } else if (e.payment_method === '現金') {
+      totalCashOut += (e.amount || 0);
+      transactions.push({ ...e, type: 'out', displayAmount: e.amount || 0 });
+    }
+  }
+
+  const balance = totalDeposits - totalCashOut;
+
+  // Running balance for recent transactions (last 20)
+  const recent = transactions.slice(0, 20);
+  let runningBalance = balance;
+  const recentWithBalance = [];
+  for (const t of recent) {
+    recentWithBalance.push({ ...t, runningBalance });
+    if (t.type === 'in') runningBalance -= t.displayAmount;
+    else runningBalance += t.displayAmount;
+  }
+
+  container.innerHTML = `
+    <!-- 残高表示 -->
+    ${card(`
+      <div style="text-align:center;padding:20px 0;">
+        <div style="color:${TEXT_SECONDARY};font-size:13px;margin-bottom:8px;">小口現金 残高</div>
+        <div style="color:${balance >= 0 ? GOLD : '#e74c3c'};font-size:40px;font-weight:bold;">${formatPrice(balance)}</div>
+        <div style="display:flex;justify-content:center;gap:24px;margin-top:16px;">
+          <div>
+            <div style="color:${TEXT_MUTED};font-size:11px;">入金合計</div>
+            <div style="color:#4caf50;font-size:14px;font-weight:bold;">+${formatPrice(totalDeposits)}</div>
+          </div>
+          <div>
+            <div style="color:${TEXT_MUTED};font-size:11px;">出金合計</div>
+            <div style="color:#e74c3c;font-size:14px;font-weight:bold;">-${formatPrice(totalCashOut)}</div>
+          </div>
+        </div>
+      </div>
+    `)}
+
+    <!-- 入金ボタン -->
+    ${card(`
+      ${sectionTitle('入金登録')}
+      ${label('入金額')}
+      ${inputField('pettyCashAmount', 'number', '0')}
+      ${label('メモ')}
+      ${inputField('pettyCashMemo', 'text', '例: ATM引き出し')}
+      <div style="margin-top:12px;">
+        ${btn('💵 入金する', 'btnAddPettyCash')}
+      </div>
+    `)}
+
+    <!-- 最近の取引 -->
+    ${sectionTitle('最近の取引')}
+    <div id="pettyCashTransactions">
+      ${recentWithBalance.length === 0 ? emptyState('💵', '現金取引がありません') : recentWithBalance.map(t => card(`
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="flex:1;min-width:0;">
+            <div style="color:${TEXT_PRIMARY};font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${t.type === 'in' ? '💵 入金' : '📤 ' + escapeHtml(t.store_name || t.category || '')}
+            </div>
+            <div style="color:${TEXT_MUTED};font-size:11px;">${formatDate(t.expense_date)} ・ ${escapeHtml(t.staff_name || '')}</div>
+            ${t.memo ? `<div style="color:${TEXT_MUTED};font-size:10px;">${escapeHtml(t.memo)}</div>` : ''}
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:12px;">
+            <div style="color:${t.type === 'in' ? '#4caf50' : '#e74c3c'};font-size:14px;font-weight:bold;">${t.type === 'in' ? '+' : '-'}${formatPrice(t.displayAmount)}</div>
+            <div style="color:${TEXT_MUTED};font-size:10px;">残高 ${formatPrice(t.runningBalance)}</div>
+          </div>
+        </div>
+      `, 'padding:10px 12px;')).join('')}
+    </div>
+  `;
+
+  // 入金ボタン
+  container.querySelector('#btnAddPettyCash').addEventListener('click', async () => {
+    const amount = parseInt(container.querySelector('#pettyCashAmount').value) || 0;
+    const memo = container.querySelector('#pettyCashMemo').value.trim();
+
+    if (!amount || amount <= 0) {
+      showToast('入金額を入力してください');
+      return;
+    }
+
+    const expense = {
+      department,
+      staff_name: staff.name,
+      expense_date: getTodayStr(),
+      store_name: '小口現金',
+      amount: amount,
+      tax_amount: 0,
+      tax_rate: 0,
+      category: '小口現金入金',
+      payment_method: '現金',
+      invoice_number: null,
+      memo: memo || '小口現金入金',
+    };
+
+    const saved = await db.createExpense(expense);
+    if (saved) {
+      showToast('入金を記録しました');
+      renderPettyCashBalance(container, month, department, staff);
+    } else {
+      showToast('記録に失敗しました');
+    }
   });
 }
 
@@ -1146,6 +1361,164 @@ function chatBubble(role, content) {
 }
 
 // ============================================================
+// チームカレンダーモジュール
+// ============================================================
+async function renderCalendar(container, params, staff) {
+  const month = params.calendarMonth || getCurrentMonth();
+  const selectedDay = params.calendarDay || null;
+
+  showLoading(container);
+
+  const [year, mon] = month.split('-').map(Number);
+  const firstDay = new Date(year, mon - 1, 1).getDay();
+  const daysInMonth = new Date(year, mon, 0).getDate();
+  const todayStr = getTodayStr();
+
+  // work_logs from DB for the month
+  const dbClient = db.getDB();
+  let workLogs = [];
+  if (dbClient) {
+    const startDate = `${month}-01`;
+    const endDate = `${month}-${String(daysInMonth).padStart(2, '0')}`;
+    const { data } = await dbClient.from('work_logs')
+      .select('*')
+      .gte('work_date', startDate)
+      .lte('work_date', endDate)
+      .order('work_date', { ascending: true });
+    workLogs = data || [];
+  }
+
+  // Aggregate by day
+  const dayStats = {};
+  for (const log of workLogs) {
+    const d = log.work_date;
+    if (!dayStats[d]) dayStats[d] = { bunka: 0, shuppin: 0, konpo: 0, shukka: 0, total: 0 };
+    const type = (log.work_type || '').toLowerCase();
+    if (type.includes('分荷') || type.includes('判定')) dayStats[d].bunka++;
+    else if (type.includes('出品') || type.includes('リスト')) dayStats[d].shuppin++;
+    else if (type.includes('梱包') || type.includes('パック')) dayStats[d].konpo++;
+    else if (type.includes('出荷') || type.includes('発送')) dayStats[d].shukka++;
+    dayStats[d].total++;
+  }
+
+  // Determine workload color per day
+  function getWorkloadColor(dateStr) {
+    const s = dayStats[dateStr];
+    if (!s) return 'transparent';
+    if (s.total >= 20) return '#e74c3c33'; // red bottleneck
+    if (s.total >= 10) return '#ff980033'; // yellow heavy
+    return '#4caf5033'; // green normal
+  }
+
+  function getDayIndicators(dateStr) {
+    const s = dayStats[dateStr];
+    if (!s) return '';
+    let icons = '';
+    if (s.shukka > 0) icons += '🚚';
+    if (s.bunka > 0) icons += '📷';
+    return icons ? `<div style="font-size:9px;line-height:1;margin-top:1px;">${icons}</div>` : '';
+  }
+
+  // Selected day detail
+  let dayDetail = '';
+  if (selectedDay) {
+    const s = dayStats[selectedDay] || { bunka: 0, shuppin: 0, konpo: 0, shukka: 0, total: 0 };
+    dayDetail = card(`
+      ${sectionTitle('📋 ' + selectedDay + ' の活動')}
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+          <div style="color:${TEXT_SECONDARY};font-size:11px;">分荷</div>
+          <div style="color:${GOLD};font-size:20px;font-weight:bold;">${s.bunka}<span style="font-size:12px;color:${TEXT_MUTED};">件</span></div>
+        </div>
+        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+          <div style="color:${TEXT_SECONDARY};font-size:11px;">出品</div>
+          <div style="color:${GOLD};font-size:20px;font-weight:bold;">${s.shuppin}<span style="font-size:12px;color:${TEXT_MUTED};">件</span></div>
+        </div>
+        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+          <div style="color:${TEXT_SECONDARY};font-size:11px;">梱包</div>
+          <div style="color:${GOLD};font-size:20px;font-weight:bold;">${s.konpo}<span style="font-size:12px;color:${TEXT_MUTED};">件</span></div>
+        </div>
+        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+          <div style="color:${TEXT_SECONDARY};font-size:11px;">出荷</div>
+          <div style="color:${GOLD};font-size:20px;font-weight:bold;">${s.shukka}<span style="font-size:12px;color:${TEXT_MUTED};">件</span></div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:8px;color:${TEXT_MUTED};font-size:12px;">合計 ${s.total} 件の作業</div>
+    `);
+  }
+
+  container.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <button id="teamCalPrev" style="background:none;border:none;color:${GOLD};font-size:18px;cursor:pointer;padding:8px;">← 前月</button>
+      <div style="color:${TEXT_PRIMARY};font-size:16px;font-weight:bold;">${year}年${String(mon).padStart(2, '0')}月</div>
+      <button id="teamCalNext" style="background:none;border:none;color:${GOLD};font-size:18px;cursor:pointer;padding:8px;">次月 →</button>
+    </div>
+
+    <!-- 凡例 -->
+    ${card(`
+      <div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">
+        <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:#4caf5033;border:1px solid #4caf50;"></div><span style="color:${TEXT_SECONDARY};font-size:11px;">通常</span></div>
+        <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:#ff980033;border:1px solid #ff9800;"></div><span style="color:${TEXT_SECONDARY};font-size:11px;">多忙</span></div>
+        <div style="display:flex;align-items:center;gap:4px;"><div style="width:12px;height:12px;border-radius:3px;background:#e74c3c33;border:1px solid #e74c3c;"></div><span style="color:${TEXT_SECONDARY};font-size:11px;">ボトルネック</span></div>
+        <div style="display:flex;align-items:center;gap:4px;"><span style="font-size:11px;">🚚出荷</span><span style="font-size:11px;">📷分荷</span></div>
+      </div>
+    `, 'padding:10px;')}
+
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;text-align:center;">
+      ${['日', '月', '火', '水', '木', '金', '土'].map((d, i) =>
+        `<div style="color:${i === 0 ? '#c0392b' : i === 6 ? '#3498db' : TEXT_SECONDARY};font-size:11px;padding:4px;">${d}</div>`
+      ).join('')}
+
+      ${Array(firstDay).fill('<div></div>').join('')}
+
+      ${Array.from({ length: daysInMonth }, (_, i) => {
+        const day = i + 1;
+        const dateStr = `${month}-${String(day).padStart(2, '0')}`;
+        const isToday = dateStr === todayStr;
+        const isSelected = dateStr === selectedDay;
+        const dow = new Date(year, mon - 1, day).getDay();
+        const isSunday = dow === 0;
+        const isSaturday = dow === 6;
+
+        let cellColor = TEXT_PRIMARY;
+        if (isSunday) cellColor = '#c0392b';
+        else if (isSaturday) cellColor = '#3498db';
+
+        const bgColor = getWorkloadColor(dateStr);
+        const indicators = getDayIndicators(dateStr);
+
+        return `<div data-calday="${dateStr}" style="padding:4px 2px;border-radius:8px;background:${bgColor};${isToday ? `border:2px solid ${GOLD};` : isSelected ? `border:2px solid #2196f3;` : ''}min-height:48px;cursor:pointer;transition:opacity 0.2s;" ontouchstart="this.style.opacity='0.7'" ontouchend="this.style.opacity='1'">
+          <div style="color:${cellColor};font-size:13px;font-weight:${isToday ? 'bold' : 'normal'};">${day}</div>
+          ${dayStats[dateStr] ? `<div style="font-size:9px;color:${TEXT_MUTED};">${dayStats[dateStr].total}件</div>` : ''}
+          ${indicators}
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div id="calendarDayDetail" style="margin-top:16px;">
+      ${dayDetail}
+    </div>
+  `;
+
+  // Month navigation
+  function navMonth(offset) {
+    const d = new Date(year, mon - 1 + offset, 1);
+    const newMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    renderCalendar(container, { ...params, calendarMonth: newMonth, calendarDay: null }, staff);
+  }
+
+  container.querySelector('#teamCalPrev').addEventListener('click', () => navMonth(-1));
+  container.querySelector('#teamCalNext').addEventListener('click', () => navMonth(1));
+
+  // Day click
+  container.querySelectorAll('[data-calday]').forEach(el => {
+    el.addEventListener('click', () => {
+      renderCalendar(container, { ...params, calendarMonth: month, calendarDay: el.dataset.calday }, staff);
+    });
+  });
+}
+
+// ============================================================
 // KPI & ダッシュボード
 // ============================================================
 async function renderKPI(container, params, staff) {
@@ -1569,7 +1942,7 @@ async function renderKnowledge(container, params, staff) {
 // ============================================================
 // マイページ
 // ============================================================
-function renderMyPage(container, params, staff) {
+async function renderMyPage(container, params, staff) {
   const savedTheme = localStorage.getItem('tkb_v2_theme') || 'dark';
   const savedAvatar = localStorage.getItem('tkb_v2_avatar') || '👤';
   const savedBg = localStorage.getItem('tkb_v2_bg') || '';
@@ -1589,6 +1962,52 @@ function renderMyPage(container, params, staff) {
     { icon: '⚙️', title: '業務モジュール', desc: '経費・勤怠・チャット・KPI・マイページ' },
   ];
 
+  // 個人実績データを取得
+  const dbClient = db.getDB();
+  let myMonthStats = { bunka: 0, shuppin: 0, konpo: 0, shukka: 0 };
+  let dailyCounts = []; // past 7 days
+  let totalWorkMinutes = 0;
+  let totalTasks = 0;
+
+  if (dbClient) {
+    const currentMonth = getCurrentMonth();
+    const startOfMonth = `${currentMonth}-01`;
+    const today = getTodayStr();
+
+    // This month's work logs for this staff
+    const { data: monthLogs } = await dbClient.from('work_logs')
+      .select('*')
+      .eq('staff_name', staff.name)
+      .gte('work_date', startOfMonth)
+      .lte('work_date', today)
+      .order('work_date', { ascending: true });
+
+    const logs = monthLogs || [];
+
+    for (const log of logs) {
+      const type = (log.work_type || '').toLowerCase();
+      if (type.includes('分荷') || type.includes('判定')) myMonthStats.bunka++;
+      else if (type.includes('出品') || type.includes('リスト')) myMonthStats.shuppin++;
+      else if (type.includes('梱包') || type.includes('パック')) myMonthStats.konpo++;
+      else if (type.includes('出荷') || type.includes('発送')) myMonthStats.shukka++;
+      totalTasks++;
+      if (log.duration_minutes) totalWorkMinutes += log.duration_minutes;
+    }
+
+    // Past 7 days daily counts
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().slice(0, 10);
+      const dayLabel = `${d.getMonth() + 1}/${d.getDate()}`;
+      const count = logs.filter(l => l.work_date === dateStr).length;
+      dailyCounts.push({ date: dayLabel, count });
+    }
+  }
+
+  const maxDaily = Math.max(...dailyCounts.map(d => d.count), 1);
+  const avgMinPerTask = totalTasks > 0 ? Math.round(totalWorkMinutes / totalTasks) : 0;
+
   container.innerHTML = `
     ${card(`
       <div style="display:flex;align-items:center;gap:16px;">
@@ -1598,6 +2017,53 @@ function renderMyPage(container, params, staff) {
           <div style="color:${TEXT_SECONDARY};font-size:13px;">${escapeHtml(staff.company || 'テイクバック')} ・ ${staff.role === 'admin' ? '管理者' : 'スタッフ'}</div>
         </div>
       </div>
+    `)}
+
+    <!-- 今月の個人実績 -->
+    ${sectionTitle('📊 今月の個人実績')}
+    ${card(`
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
+        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+          <div style="color:${TEXT_SECONDARY};font-size:10px;">分荷</div>
+          <div style="color:${GOLD};font-size:20px;font-weight:bold;">${myMonthStats.bunka}<span style="font-size:10px;color:${TEXT_MUTED};">件</span></div>
+        </div>
+        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+          <div style="color:${TEXT_SECONDARY};font-size:10px;">出品</div>
+          <div style="color:${GOLD};font-size:20px;font-weight:bold;">${myMonthStats.shuppin}<span style="font-size:10px;color:${TEXT_MUTED};">件</span></div>
+        </div>
+        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+          <div style="color:${TEXT_SECONDARY};font-size:10px;">梱包</div>
+          <div style="color:${GOLD};font-size:20px;font-weight:bold;">${myMonthStats.konpo}<span style="font-size:10px;color:${TEXT_MUTED};">件</span></div>
+        </div>
+        <div style="text-align:center;padding:8px;background:#111;border-radius:8px;">
+          <div style="color:${TEXT_SECONDARY};font-size:10px;">出荷</div>
+          <div style="color:${GOLD};font-size:20px;font-weight:bold;">${myMonthStats.shukka}<span style="font-size:10px;color:${TEXT_MUTED};">件</span></div>
+        </div>
+      </div>
+
+      <div style="color:${TEXT_SECONDARY};font-size:12px;margin-bottom:8px;">過去7日間の作業数</div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:80px;margin-bottom:4px;">
+        ${dailyCounts.map(d => `
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+            <div style="width:100%;background:${GOLD};border-radius:3px 3px 0 0;min-height:2px;height:${Math.round(d.count / maxDaily * 60)}px;transition:height 0.3s;"></div>
+          </div>
+        `).join('')}
+      </div>
+      <div style="display:flex;gap:4px;">
+        ${dailyCounts.map(d => `
+          <div style="flex:1;text-align:center;">
+            <div style="color:${TEXT_MUTED};font-size:9px;">${d.date}</div>
+            <div style="color:${TEXT_PRIMARY};font-size:10px;font-weight:bold;">${d.count}</div>
+          </div>
+        `).join('')}
+      </div>
+
+      ${avgMinPerTask > 0 ? `
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid ${BORDER};text-align:center;">
+          <span style="color:${TEXT_SECONDARY};font-size:12px;">平均作業時間/件: </span>
+          <span style="color:${GOLD};font-size:14px;font-weight:bold;">${avgMinPerTask}分</span>
+        </div>
+      ` : ''}
     `)}
 
     ${sectionTitle('アバター')}
