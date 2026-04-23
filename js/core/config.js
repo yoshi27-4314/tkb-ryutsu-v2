@@ -49,6 +49,8 @@ export const CONFIG = {
     COMPLETE: '完了',
     // 相談
     CONSULT: '確認/相談',
+    // 委託返却
+    RETURN_PENDING: '返却予定',
     // 特別（トラブル��
     ISSUE_REPORTED: '商品問題連絡',
     CARRIER_CONSULT: '運送会社相談中',
@@ -80,6 +82,7 @@ export const CONFIG = {
     '梱包待ち': 'trade', '梱包中': 'trade', '梱包完了': 'trade',
     '発送済み': 'trade', '受取確認': 'trade', '完了': 'trade',
     '確認/相談': 'intake',
+    '返却予定': 'trade',
   },
 
   // コスト基準（Slack Bot prompts.pyより）
@@ -151,6 +154,21 @@ export const CONFIG = {
       'AI不確信（confidence < 0.7）',
     ],
   },
+
+  // 委託販売設定
+  CONSIGNMENT: {
+    'ビッグスポーツ': { rate: 50, fixed: true },
+    '渡辺質店': { rate: null, fixed: false },
+    'シマチヨ': { rate: null, fixed: false },
+  },
+
+  // 返却理由
+  RETURN_REASONS: [
+    { id: 'unsold', label: '売れ残り' },
+    { id: 'fake', label: '偽物・返品' },
+    { id: 'cant_list', label: '出品不可' },
+    { id: 'partner_request', label: '委託元依頼' },
+  ],
 
   // 担当マーク
   STAFF_MARKS: {

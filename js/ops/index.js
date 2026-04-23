@@ -128,6 +128,7 @@ export function renderOps(container, params = {}) {
     { id: 'chat', label: '💬 チャット' },
     { id: 'calendar', label: '📅 カレンダー' },
     { id: 'kpi', label: '📊 KPI' },
+    { id: 'consignment', label: '🤝 委託' },
     { id: 'voice', label: '🗣 声' },
     { id: 'knowledge', label: '📚 知識' },
     { id: 'mypage', label: '👤 マイページ' },
@@ -155,6 +156,7 @@ export function renderOps(container, params = {}) {
     case 'chat': renderChat(content, params, staff); break;
     case 'calendar': renderCalendar(content, params, staff); break;
     case 'kpi': renderKPI(content, params, staff); break;
+    case 'consignment': renderConsignmentReport(content, params, staff); break;
     case 'voice': renderVoice(content, params, staff); break;
     case 'knowledge': renderKnowledge(content, params, staff); break;
     case 'mypage': renderMyPage(content, params, staff); break;
@@ -1516,6 +1518,215 @@ async function renderCalendar(container, params, staff) {
       renderCalendar(container, { ...params, calendarMonth: month, calendarDay: el.dataset.calday }, staff);
     });
   });
+}
+
+// ============================================================
+// 委託販売レポート
+// ============================================================
+
+async function renderConsignmentReport(container, params, staff) {
+  const selectedPartner = params.consignPartner || 'ビッグスポーツ';
+  const selectedMonth = params.consignMonth || getCurrentMonth();
+  const partners = ['ビッグスポーツ', '渡辺質店'];
+
+  // 月セレクター用: 直近6ヶ月
+  const months = [];
+  for (let i = 0; i < 6; i++) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    months.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
+  }
+
+  container.innerHTML = `
+    ${sectionTitle('委託販売レポート')}
+    ${card(`
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        ${partners.map(p => `<button class="consign-partner-btn" data-partner="${escapeHtml(p)}" style="flex:1;padding:10px;border-radius:8px;border:none;font-size:13px;font-weight:bold;cursor:pointer;${p === selectedPartner ? `background:${GOLD};color:#000;` : `background:#222;color:${TEXT_SECONDARY};`}">${escapeHtml(p)}</button>`).join('')}
+      </div>
+      <div style="margin-bottom:8px;">
+        ${label('対象月')}
+        ${selectBox('consignMonthSelect', months.map(m => ({ value: m, label: m })), selectedMonth)}
+      </div>
+    `)}
+    <div id="consignReportBody"></div>
+  `;
+
+  // パートナー切替
+  container.querySelectorAll('.consign-partner-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      renderConsignmentReport(container, { ...params, consignPartner: btn.dataset.partner, tab: 'consignment' }, staff);
+    });
+  });
+
+  // 月切替
+  container.querySelector('#consignMonthSelect')?.addEventListener('change', (e) => {
+    renderConsignmentReport(container, { ...params, consignMonth: e.target.value, tab: 'consignment' }, staff);
+  });
+
+  const reportBody = container.querySelector('#consignReportBody');
+  showLoading(reportBody);
+
+  // データ取得: consignment_partner が一致 & sold_at が対象月内
+  try {
+    const allItems = await db.getItems({
+      orderBy: 'sold_at',
+      ascending: false,
+    });
+
+    // フィルタ: 委託先一致 & 対象月に売れたもの
+    const monthStart = selectedMonth + '-01';
+    const nextMonth = (() => {
+      const d = new Date(monthStart + 'T00:00:00');
+      d.setMonth(d.getMonth() + 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    })();
+
+    const items = allItems.filter(item => {
+      if (item.consignment_partner !== selectedPartner) return false;
+      if (!item.sold_at) return false;
+      const soldDate = item.sold_at.slice(0, 10);
+      return soldDate >= monthStart && soldDate < nextMonth;
+    });
+
+    // 返却中の商品も取得
+    const returnItems = allItems.filter(item => {
+      return item.consignment_partner === selectedPartner && item.return_status && item.return_status !== '';
+    });
+
+    if (items.length === 0 && returnItems.length === 0) {
+      reportBody.innerHTML = `<div style="text-align:center;color:${TEXT_MUTED};padding:40px;font-size:14px;">該当データなし</div>`;
+      return;
+    }
+
+    // 集計
+    let totalSold = 0;
+    let totalFee = 0;
+    let totalTkbShare = 0;
+    let totalPartnerShare = 0;
+
+    const partnerConfig = CONFIG.CONSIGNMENT[selectedPartner];
+
+    const rows = items.map(item => {
+      const sold = item.sold_price || 0;
+      const fee = item.platform_fee || 0;
+      const rate = item.commission_rate || (partnerConfig?.rate) || 0;
+      const tkbShare = Math.round(sold * rate / 100);
+      const tkbAfterFee = tkbShare - fee;
+      const partnerPay = sold - tkbShare;
+
+      totalSold += sold;
+      totalFee += fee;
+      totalTkbShare += tkbAfterFee;
+      totalPartnerShare += partnerPay;
+
+      return `<tr style="border-bottom:1px solid #222;">
+        <td style="padding:8px 4px;color:${GOLD};font-size:12px;white-space:nowrap;">${escapeHtml(item.mgmt_num)}</td>
+        <td style="padding:8px 4px;color:${TEXT_PRIMARY};font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.product_name || '')}</td>
+        <td style="padding:8px 4px;color:${TEXT_PRIMARY};font-size:12px;text-align:right;">${formatPrice(sold)}</td>
+        <td style="padding:8px 4px;color:#f44336;font-size:12px;text-align:right;">${formatPrice(fee)}</td>
+        <td style="padding:8px 4px;color:#4caf50;font-size:12px;text-align:right;">${formatPrice(tkbAfterFee)}</td>
+        <td style="padding:8px 4px;color:${TEXT_PRIMARY};font-size:12px;text-align:right;">${formatPrice(partnerPay)}</td>
+      </tr>`;
+    }).join('');
+
+    reportBody.innerHTML = `
+      ${items.length > 0 ? `
+        ${sectionTitle(`売上明細 (${items.length}件)`)}
+        ${card(`
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+            <table style="width:100%;border-collapse:collapse;min-width:500px;">
+              <thead>
+                <tr style="border-bottom:2px solid #333;">
+                  <th style="padding:8px 4px;color:${TEXT_SECONDARY};font-size:11px;text-align:left;">管理番号</th>
+                  <th style="padding:8px 4px;color:${TEXT_SECONDARY};font-size:11px;text-align:left;">商品名</th>
+                  <th style="padding:8px 4px;color:${TEXT_SECONDARY};font-size:11px;text-align:right;">落札価格</th>
+                  <th style="padding:8px 4px;color:${TEXT_SECONDARY};font-size:11px;text-align:right;">手数料</th>
+                  <th style="padding:8px 4px;color:${TEXT_SECONDARY};font-size:11px;text-align:right;">TKB利益</th>
+                  <th style="padding:8px 4px;color:${TEXT_SECONDARY};font-size:11px;text-align:right;">委託元払い</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+              <tfoot>
+                <tr style="border-top:2px solid ${GOLD};">
+                  <td colspan="2" style="padding:10px 4px;color:${GOLD};font-size:13px;font-weight:bold;">合計</td>
+                  <td style="padding:10px 4px;color:${TEXT_PRIMARY};font-size:13px;font-weight:bold;text-align:right;">${formatPrice(totalSold)}</td>
+                  <td style="padding:10px 4px;color:#f44336;font-size:13px;font-weight:bold;text-align:right;">${formatPrice(totalFee)}</td>
+                  <td style="padding:10px 4px;color:#4caf50;font-size:13px;font-weight:bold;text-align:right;">${formatPrice(totalTkbShare)}</td>
+                  <td style="padding:10px 4px;color:${TEXT_PRIMARY};font-size:13px;font-weight:bold;text-align:right;">${formatPrice(totalPartnerShare)}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        `)}
+      ` : ''}
+
+      ${returnItems.length > 0 ? `
+        ${sectionTitle(`返却予定 (${returnItems.length}件)`)}
+        ${card(`
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            ${returnItems.map(item => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #222;">
+                <div>
+                  <div style="color:${GOLD};font-size:12px;">${escapeHtml(item.mgmt_num)}</div>
+                  <div style="color:${TEXT_PRIMARY};font-size:13px;">${escapeHtml(item.product_name || '')}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="color:#ff9800;font-size:12px;font-weight:bold;">${escapeHtml(item.return_status)}</div>
+                  <div style="color:${TEXT_MUTED};font-size:11px;">${escapeHtml(item.return_reason || '')}</div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `)}
+      ` : ''}
+
+      ${items.length > 0 ? `
+        <div style="margin-top:12px;">
+          ${btn('CSVダウンロード', 'btnConsignCsv', 'ghost')}
+        </div>
+      ` : ''}
+    `;
+
+    // CSVダウンロード
+    const csvBtn = reportBody.querySelector('#btnConsignCsv');
+    if (csvBtn) {
+      csvBtn.addEventListener('click', () => {
+        const csvHeaders = ['管理番号', '商品名', '落札価格', 'ヤフオク手数料', 'テイクバック利益', '委託元支払い', '落札日'];
+        const csvRows = items.map(item => {
+          const sold = item.sold_price || 0;
+          const fee = item.platform_fee || 0;
+          const rate = item.commission_rate || (partnerConfig?.rate) || 0;
+          const tkbShare = Math.round(sold * rate / 100) - fee;
+          const partnerPay = sold - Math.round(sold * rate / 100);
+          return [
+            item.mgmt_num,
+            item.product_name || '',
+            sold,
+            fee,
+            tkbShare,
+            partnerPay,
+            item.sold_at ? item.sold_at.slice(0, 10) : '',
+          ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+        });
+
+        const csvContent = '\uFEFF' + csvHeaders.map(h => `"${h}"`).join(',') + '\n' + csvRows.join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `委託レポート_${selectedPartner}_${selectedMonth}.csv`;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        showToast('CSVをダウンロードしました');
+      });
+    }
+  } catch (e) {
+    console.error('委託レポート取得エラー:', e);
+    reportBody.innerHTML = `<div style="text-align:center;color:#f44336;padding:20px;">データの取得に失敗しました</div>`;
+  }
 }
 
 // ============================================================

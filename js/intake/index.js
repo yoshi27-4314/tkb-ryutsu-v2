@@ -61,7 +61,20 @@ function resetState() {
     storageMemo: '',
     startTime: null,
     consultReason: '',
+    commissionRate: null,
   };
+}
+
+/** sourceType id → 表示名 */
+function getSourceLabel(id) {
+  const src = SOURCE_TYPES.find(s => s.id === id);
+  return src ? src.label : id || '';
+}
+
+/** sourceType id が委託先かどうか */
+function isConsignmentSource(id) {
+  const label = getSourceLabel(id);
+  return ['ビッグスポーツ', '渡辺質店', 'シマチヨ'].includes(label);
 }
 
 let containerRef = null;
@@ -412,6 +425,22 @@ function renderResult() {
       </div>
       ` : ''}
 
+      <!-- 委託販売: 手数料率 -->
+      ${getSourceLabel(state.sourceType) === '渡辺質店' ? `
+      <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <p style="color:#888;font-size:11px;margin-bottom:8px;">手数料率（テイクバック取り分）</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          ${[20,30,40,50].map(r => `<button class="commission-btn" data-rate="${r}" style="padding:8px 16px;border-radius:8px;border:1px solid ${state.commissionRate === r ? '#C5A258' : '#333'};background:${state.commissionRate === r ? '#C5A258' : 'transparent'};color:${state.commissionRate === r ? '#000' : '#e0e0e0'};font-size:14px;cursor:pointer;">${r}%</button>`).join('')}
+        </div>
+      </div>
+      ` : ''}
+      ${getSourceLabel(state.sourceType) === 'ビッグスポーツ' ? `
+      <div style="background:#1a1a2e;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <p style="color:#888;font-size:11px;">手数料率</p>
+        <p style="color:#C5A258;font-size:16px;font-weight:bold;">50:50（固定）</p>
+      </div>
+      ` : ''}
+
       <!-- 浅野承認が必要な場合の警告 -->
       ${needsApproval ? `
       <div style="background:#f4433622;border:1px solid #f44336;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
@@ -464,6 +493,21 @@ function renderResult() {
     state.aiResult = null;
     state.step = 'capture';
     render();
+  });
+
+  // 委託手数料率ボタン
+  containerRef.querySelectorAll('.commission-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.commissionRate = parseInt(btn.dataset.rate);
+      // ボタン表示更新
+      containerRef.querySelectorAll('.commission-btn').forEach(b => {
+        const isActive = parseInt(b.dataset.rate) === state.commissionRate;
+        b.style.borderColor = isActive ? '#C5A258' : '#333';
+        b.style.background = isActive ? '#C5A258' : 'transparent';
+        b.style.color = isActive ? '#000' : '#e0e0e0';
+      });
+    });
+    addTouchFeedback(btn);
   });
 
   addTouchFeedback(containerRef.querySelector('#resultOk'));
@@ -541,6 +585,9 @@ async function handleConfirm(needsApproval) {
       judged_at: new Date().toISOString(),
       staff_mark: CONFIG.STAFF_MARKS[staff.name] || '',
       source: 'app',
+      commission_rate: getSourceLabel(state.sourceType) === 'ビッグスポーツ' ? 50 : (state.commissionRate || null),
+      commission_type: getSourceLabel(state.sourceType) === 'ビッグスポーツ' ? 'fixed' : (state.commissionRate ? 'variable' : ''),
+      consignment_partner: isConsignmentSource(state.sourceType) ? getSourceLabel(state.sourceType) : '',
     };
 
     const created = await db.createItem(item);
@@ -639,6 +686,9 @@ function handleConsult() {
         judged_at: new Date().toISOString(),
         staff_mark: CONFIG.STAFF_MARKS[staff.name] || '',
         source: 'app',
+        commission_rate: getSourceLabel(state.sourceType) === 'ビッグスポーツ' ? 50 : (state.commissionRate || null),
+        commission_type: getSourceLabel(state.sourceType) === 'ビッグスポーツ' ? 'fixed' : (state.commissionRate ? 'variable' : ''),
+        consignment_partner: isConsignmentSource(state.sourceType) ? getSourceLabel(state.sourceType) : '',
       };
 
       const created = await db.createItem(item);

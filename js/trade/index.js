@@ -327,6 +327,38 @@ function renderDetail(item) {
         </div>
       </div>
 
+      <!-- 委託販売情報 -->
+      ${item.consignment_partner ? (() => {
+        const cRate = item.commission_rate || 0;
+        const cPartner = item.consignment_partner;
+        const isFixed = cPartner === 'ビッグスポーツ';
+        const tkbShare = soldPrice > 0 ? Math.round(soldPrice * cRate / 100) : 0;
+        const partnerShare = soldPrice > 0 ? soldPrice - tkbShare : 0;
+        const tkbAfterFee = tkbShare - platformFee;
+        return `
+      <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #C5A25844;">
+        <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:10px;">🤝 委託販売情報</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:13px;">
+          ${detailRow('委託先', cPartner)}
+          ${detailRow('手数料率', isFixed ? '50:50（固定）' : cRate + '%（テイクバック取り分）')}
+          ${detailRow('返却状態', item.return_status || '—')}
+          ${item.return_reason ? detailRow('返却理由', item.return_reason) : ''}
+        </div>
+        ${soldPrice > 0 ? `
+        <div style="border-top:1px solid #333;margin-top:10px;padding-top:10px;">
+          <div style="color:#C5A258;font-size:12px;font-weight:bold;margin-bottom:8px;">利益分配</div>
+          <div style="display:flex;flex-direction:column;gap:4px;font-size:13px;">
+            <div style="display:flex;justify-content:space-between;"><span style="color:#888;">落札価格</span><span style="color:#e0e0e0;">${formatPrice(soldPrice)}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#888;">テイクバック取り分 (${cRate}%)</span><span style="color:#e0e0e0;">${formatPrice(tkbShare)}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#888;">ヤフオク手数料</span><span style="color:#f44336;">-${formatPrice(platformFee)}</span></div>
+            <div style="display:flex;justify-content:space-between;border-top:1px solid #333;padding-top:4px;margin-top:4px;"><span style="color:#888;font-weight:bold;">テイクバック実利益</span><span style="color:${tkbAfterFee > 0 ? '#4caf50' : '#f44336'};font-weight:bold;">${formatPrice(tkbAfterFee)}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span style="color:#888;font-weight:bold;">委託元支払い</span><span style="color:#e0e0e0;font-weight:bold;">${formatPrice(partnerShare)}</span></div>
+          </div>
+        </div>
+        ` : ''}
+      </div>`;
+      })() : ''}
+
       <!-- 出荷情報 -->
       <div style="background:#1a1a2e;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #262640;">
         <div style="color:#C5A258;font-size:13px;font-weight:bold;margin-bottom:10px;">🚚 出荷情報</div>
@@ -386,6 +418,11 @@ function renderDetail(item) {
           ✏️ 売上情報を編集
         </button>
 
+        ${item.consignment_partner && !item.return_status ? `
+          <button id="btnReturn" style="padding:12px;border-radius:10px;background:#2a2a3e;color:#ff9800;border:1px solid #ff9800;font-size:14px;cursor:pointer;">
+            ↩ 委託元へ返却
+          </button>` : ''}
+
         ${!isTrouble ? `
           <button id="btnTrouble" style="padding:12px;border-radius:10px;background:#2a2a3e;color:#f44336;border:1px solid #f44336;font-size:14px;cursor:pointer;">
             ⚠ トラブル報告
@@ -434,6 +471,9 @@ function renderDetail(item) {
 
   const btnEditSales = _container.querySelector('#btnEditSales');
   if (btnEditSales) btnEditSales.addEventListener('click', () => renderSalesEditForm(item));
+
+  const btnReturn = _container.querySelector('#btnReturn');
+  if (btnReturn) btnReturn.addEventListener('click', () => renderReturnDialog(item));
 
   const btnTrouble = _container.querySelector('#btnTrouble');
   if (btnTrouble) btnTrouble.addEventListener('click', () => renderTroubleScreen(item));
@@ -1206,6 +1246,97 @@ function downloadCsv(csvContent, filename) {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+// ---------------------------------------------------------------------------
+// 委託返却フロー
+// ---------------------------------------------------------------------------
+
+function renderReturnDialog(item) {
+  const staff = getCurrentStaff();
+  const staffName = staff?.name || '';
+  const reasons = CONFIG.RETURN_REASONS || [
+    { id: 'unsold', label: '売れ残り' },
+    { id: 'fake', label: '偽物・返品' },
+    { id: 'cant_list', label: '出品不可' },
+    { id: 'partner_request', label: '委託元依頼' },
+  ];
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:#1a1a2e;border-radius:16px;padding:24px;max-width:380px;width:100%;">
+      <h3 style="color:#ff9800;font-size:16px;margin-bottom:4px;">↩ 委託元へ返却</h3>
+      <p style="color:#888;font-size:12px;margin-bottom:16px;">${escapeHtml(item.mgmt_num)} - ${escapeHtml(item.product_name)}</p>
+      <p style="color:#aaa;font-size:13px;margin-bottom:12px;">返却理由を選択してください</p>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+        ${reasons.map((r, i) => `
+          <button class="return-reason-btn" data-reason="${escapeHtml(r.label)}"
+            style="padding:12px 16px;border-radius:8px;border:1px solid ${i === 0 ? '#ff9800' : '#333'};
+            background:${i === 0 ? '#ff980022' : '#0d0d1a'};color:#e0e0e0;text-align:left;cursor:pointer;font-size:14px;">
+            ${escapeHtml(r.label)}
+          </button>
+        `).join('')}
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button id="returnCancel" style="flex:1;padding:12px;border-radius:8px;background:#333;color:#ccc;border:none;font-size:14px;cursor:pointer;">キャンセル</button>
+        <button id="returnConfirm" style="flex:1;padding:12px;border-radius:8px;background:#ff9800;color:#000;border:none;font-size:14px;font-weight:bold;cursor:pointer;">返却確定</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  let selectedReason = reasons[0].label;
+
+  overlay.querySelectorAll('.return-reason-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      selectedReason = btn.dataset.reason;
+      overlay.querySelectorAll('.return-reason-btn').forEach(b => {
+        const isActive = b.dataset.reason === selectedReason;
+        b.style.borderColor = isActive ? '#ff9800' : '#333';
+        b.style.background = isActive ? '#ff980022' : '#0d0d1a';
+      });
+    });
+  });
+
+  overlay.querySelector('#returnCancel').addEventListener('click', () => overlay.remove());
+
+  overlay.querySelector('#returnConfirm').addEventListener('click', async () => {
+    overlay.remove();
+    showLoading(_container, '返却処理中...');
+
+    try {
+      const updates = {
+        return_status: '返却予定',
+        return_reason: selectedReason,
+        return_date: new Date().toISOString(),
+        memo: (item.memo ? item.memo + '\n' : '') + `[返却 ${new Date().toLocaleString('ja-JP')}] ${selectedReason} - ${item.consignment_partner}`,
+      };
+
+      const updated = await db.updateItem(item.mgmt_num, updates);
+
+      // ステータスログにも記録
+      await db.logWork({
+        staff_name: staffName,
+        work_type: '委託返却',
+        mgmt_num: item.mgmt_num,
+        duration_seconds: 0,
+        note: `${item.consignment_partner} - ${selectedReason}`,
+      });
+
+      if (updated) {
+        showToast(`返却予定に設定しました: ${selectedReason}`);
+        renderDetail(updated);
+      } else {
+        showToast('更新に失敗しました');
+        renderDetail(item);
+      }
+    } catch (e) {
+      console.error('返却処理エラー:', e);
+      showToast('返却処理に失敗しました');
+      renderDetail(item);
+    }
+  });
 }
 
 // ---------------------------------------------------------------------------
