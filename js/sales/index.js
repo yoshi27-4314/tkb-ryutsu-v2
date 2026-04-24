@@ -6,7 +6,10 @@ import { CONFIG } from '../core/config.js';
 import * as db from '../core/db.js';
 import { getCurrentStaff } from '../core/auth.js';
 import { showToast, showLoading, showConfirm, capturePhoto, fileToBase64, resizeImage, escapeHtml, statusBadge, formatPrice, formatDuration, emptyState } from '../core/ui.js';
-import { navigate } from '../core/router.js';
+import { navigate, registerBeforeLeave } from '../core/router.js';
+
+// salesモジュールから離脱時のクリーンアップ登録
+registerBeforeLeave('sales', () => { cleanupWorkingItem(); });
 
 // ============================================================
 //  内部状態
@@ -38,11 +41,14 @@ const TITLE_MAX_LEN = 65;
 //  メインエントリ
 // ============================================================
 export function renderSales(container, params = {}) {
+  // 前回の作業中アイテムのクリーンアップ（他画面から戻ってきた場合）
+  cleanupWorkingItem();
+
   // リアルタイム購読
   if (unsubscribe) unsubscribe();
   unsubscribe = db.subscribe((table) => {
     if (table === 'items' && !workingItem) {
-      loadItems(container);
+      if (currentTab !== '_flow') loadItems(container);
     }
   });
 
@@ -55,7 +61,97 @@ export function renderSales(container, params = {}) {
     return;
   }
 
-  renderListView(container);
+  // パラメータで一覧を明示的に要求した場合
+  if (params.showList) {
+    renderListView(container);
+    return;
+  }
+
+  // デフォルト: 最優先商品を即表示（フローモード）
+  openNextItem(container);
+}
+
+// ============================================================
+//  フローモード: 次の出品待ち商品を自動で開く
+// ============================================================
+async function openNextItem(container) {
+  currentTab = '_flow';
+  showLoading(container, '次の商品を探しています...');
+
+  const filters = {
+    status: [CONFIG.STATUS.LIST_WAIT, CONFIG.STATUS.JUDGED, CONFIG.STATUS.PHOTO_WAIT],
+    orderBy: 'priority_score',
+    ascending: false,
+    limit: 1,
+  };
+  const items = await db.getItems(filters);
+
+  if (items.length === 0) {
+    // 出品待ちがない → 一覧表示に切り替え
+    container.innerHTML = `
+      <div style="padding:40px 20px;text-align:center;">
+        <div style="font-size:48px;margin-bottom:12px;">✅</div>
+        <h2 style="color:#C5A258;font-size:18px;margin-bottom:8px;">出品待ちなし</h2>
+        <p style="color:#5a6272;font-size:13px;margin-bottom:20px;">出品待ちの商品はありません</p>
+        <button id="flowToList" style="padding:12px 24px;border-radius:10px;border:1px solid #C5A258;background:transparent;color:#C5A258;font-size:14px;cursor:pointer;">
+          出品中の一覧を見る
+        </button>
+      </div>
+    `;
+    container.querySelector('#flowToList')?.addEventListener('click', () => {
+      currentTab = 'listing';
+      renderListView(container);
+    });
+    return;
+  }
+
+  const item = items[0];
+
+  // 写真チェック: 写真がなければ撮影を促す
+  if (!item.photo_urls || item.photo_urls.length === 0) {
+    renderPhotoRequired(container, item);
+    return;
+  }
+
+  openListingWork(container, item.mgmt_num);
+}
+
+// 写真なし → 撮影誘導画面
+function renderPhotoRequired(container, item) {
+  container.innerHTML = `
+    <div style="padding:16px 16px 100px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <button id="photoReqBack" style="background:none;border:none;color:#C5A258;font-size:14px;cursor:pointer;">← 一覧</button>
+      </div>
+      <div style="text-align:center;padding:20px;">
+        <div style="font-size:48px;margin-bottom:12px;">📷</div>
+        <h2 style="color:#C5A258;font-size:18px;margin-bottom:8px;">写真が必要です</h2>
+        <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:16px;border:1px solid #dde0e6;text-align:left;">
+          <span style="font-size:13px;color:#C5A258;font-weight:bold;">${escapeHtml(item.mgmt_num)}</span>
+          <div style="font-size:15px;color:#1C2541;font-weight:bold;margin-top:4px;">${escapeHtml(item.product_name || '')}</div>
+          <div style="font-size:12px;color:#5a6272;margin-top:2px;">${escapeHtml(item.maker || '')} ${escapeHtml(item.model_number || '')}</div>
+        </div>
+        <p style="color:#5a6272;font-size:13px;margin-bottom:20px;">出品するには商品写真が必要です。<br>先に写真を撮影してください。</p>
+        <button id="photoReqShoot" style="width:100%;padding:16px;border-radius:12px;border:none;background:#C5A258;color:#000;font-size:16px;font-weight:bold;cursor:pointer;margin-bottom:10px;">
+          📷 写真を撮影する
+        </button>
+        <button id="photoReqSkip" style="width:100%;padding:12px;border-radius:12px;border:1px solid #dde0e6;background:transparent;color:#5a6272;font-size:13px;cursor:pointer;">
+          スキップして次の商品へ
+        </button>
+      </div>
+    </div>
+  `;
+
+  container.querySelector('#photoReqBack')?.addEventListener('click', () => {
+    currentTab = 'list_wait';
+    renderListView(container);
+  });
+  container.querySelector('#photoReqShoot')?.addEventListener('click', () => {
+    navigate('intake', { step: 'photo', mgmtNum: item.mgmt_num });
+  });
+  container.querySelector('#photoReqSkip')?.addEventListener('click', () => {
+    openNextItem(container);
+  });
 }
 
 // ============================================================
@@ -81,6 +177,12 @@ function renderListView(container) {
         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#8a8a8a;font-size:16px;">🔍</span>
       </div>
 
+      <!-- 流し作業ボタン -->
+      <button id="startFlowBtn"
+        style="width:100%;padding:14px;border-radius:12px;border:none;background:#C5A258;color:#000;font-size:15px;font-weight:bold;cursor:pointer;margin-bottom:12px;">
+        ▶ 流し作業を開始
+      </button>
+
       <!-- タブ -->
       <div id="salesTabs" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;">
         ${renderTab('list_wait', '出品待ち')}
@@ -96,6 +198,11 @@ function renderListView(container) {
   // ホームへ戻る
   container.querySelector('#salesBackHome')?.addEventListener('click', () => {
     navigate('home');
+  });
+
+  // 流し作業ボタン
+  container.querySelector('#startFlowBtn')?.addEventListener('click', () => {
+    openNextItem(container);
   });
 
   // イベント
@@ -195,20 +302,36 @@ function renderItemCard(item) {
     ? `<span style="font-size:12px;color:#C5A258;margin-right:4px;">${escapeHtml(item.staff_mark)}</span>`
     : '';
 
+  // 写真サムネイル（1枚目）
+  const thumbUrl = item.photo_urls?.[0] || '';
+  const thumbHtml = thumbUrl
+    ? `<img src="${escapeHtml(thumbUrl)}" style="width:56px;height:56px;object-fit:cover;border-radius:8px;border:1px solid #dde0e6;flex-shrink:0;">`
+    : `<div style="width:56px;height:56px;border-radius:8px;background:#f0ede6;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px;color:#ccc;">📷</div>`;
+
+  // 分荷者メモ
+  const judgedInfo = item.judged_by ? `${escapeHtml(item.judged_by)}` : '';
+  const memoSnippet = item.listing_memo || item.memo || '';
+
   return `
     <div class="sales-card" data-mgmt="${escapeHtml(item.mgmt_num)}"
-      style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer;
-      border:1px solid #dde0e6;transition:transform 0.15s;active:scale(0.98);">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-        <span style="font-size:12px;color:#C5A258;font-weight:bold;">${markBadge}${escapeHtml(item.mgmt_num)}</span>
-        <div>${statusBadge(item.status)}${lockedBadge}</div>
-      </div>
-      <div style="font-size:14px;color:#1C2541;font-weight:bold;margin-bottom:4px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-        ${escapeHtml(item.product_name || '（商品名なし）')}
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#5a6272;">
-        <span>${escapeHtml(channelLabel)}</span>
-        <span>${priceRange}${priorityBadge}</span>
+      style="background:#ffffff;border-radius:12px;padding:12px;margin-bottom:8px;cursor:pointer;
+      border:1px solid #dde0e6;transition:transform 0.15s;">
+      <div style="display:flex;gap:10px;">
+        ${thumbHtml}
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;">
+            <span style="font-size:12px;color:#C5A258;font-weight:bold;">${markBadge}${escapeHtml(item.mgmt_num)}</span>
+            <div style="flex-shrink:0;">${statusBadge(item.status)}${lockedBadge}</div>
+          </div>
+          <div style="font-size:13px;color:#1C2541;font-weight:bold;margin-bottom:3px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+            ${escapeHtml(item.product_name || '（商品名なし）')}
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#5a6272;">
+            <span>${escapeHtml(channelLabel)}</span>
+            <span>${priceRange}${priorityBadge}</span>
+          </div>
+          ${memoSnippet ? `<div style="font-size:10px;color:#8a8a8a;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${judgedInfo ? judgedInfo + ': ' : ''}${escapeHtml(memoSnippet).slice(0, 40)}</div>` : (judgedInfo ? `<div style="font-size:10px;color:#8a8a8a;margin-top:2px;">分荷: ${judgedInfo}</div>` : '')}
+        </div>
       </div>
     </div>
   `;
@@ -241,8 +364,13 @@ async function openListingWork(container, mgmtNum) {
     }
   }
 
-  // ステータスを出品作業中に更新
-  await db.updateItemStatus(mgmtNum, CONFIG.STATUS.LISTING_WORK, staff.name);
+  // ステータスを出品作業中に更新（既に出品中以降のステータスなら変更しない）
+  const currentItem = await db.getItem(mgmtNum);
+  const listingIdx = CONFIG.STATUS_FLOW.indexOf(CONFIG.STATUS.LISTING);
+  const currentIdx = CONFIG.STATUS_FLOW.indexOf(currentItem?.status);
+  if (currentIdx < listingIdx) {
+    await db.updateItemStatus(mgmtNum, CONFIG.STATUS.LISTING_WORK, staff.name);
+  }
 
   const item = await db.getItem(mgmtNum);
   if (!item) {
@@ -268,27 +396,32 @@ async function openListingWork(container, mgmtNum) {
   startTimer();
 
   container.innerHTML = `
-    <div style="padding:12px 12px 120px;">
-      <!-- ヘッダー -->
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-        <button id="salesBackBtn" style="background:none;border:none;color:#C5A258;font-size:14px;cursor:pointer;padding:4px 0;">
-          ← 一覧に戻る
-        </button>
-        <div id="salesTimer" style="font-size:16px;color:#C5A258;font-weight:bold;font-variant-numeric:tabular-nums;">
-          00:00
+    <div style="padding:0 0 120px;">
+      <!-- スティッキーヘッダー（管理番号常時表示） -->
+      <div style="position:sticky;top:0;z-index:100;background:#F8F5EE;padding:8px 12px;border-bottom:1px solid #dde0e6;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button id="salesBackBtn" style="background:none;border:none;color:#C5A258;font-size:14px;cursor:pointer;padding:4px 0;">←</button>
+            <span style="font-size:16px;color:#C5A258;font-weight:bold;">${escapeHtml(item.mgmt_num)}</span>
+            ${statusBadge(item.status)}
+          </div>
+          <div id="salesTimer" style="font-size:16px;color:#C5A258;font-weight:bold;font-variant-numeric:tabular-nums;">
+            00:00
+          </div>
+        </div>
+        <div style="font-size:12px;color:#5a6272;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:28px;">
+          ${escapeHtml(item.product_name || '')} | ${escapeHtml(item.maker || '')}
         </div>
       </div>
 
+      <div style="padding:12px 12px 0;">
       <!-- 商品情報ヘッダ -->
       <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #dde0e6;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <span style="font-size:13px;color:#C5A258;font-weight:bold;">${escapeHtml(item.mgmt_num)}</span>
-          ${statusBadge(item.status)}
-        </div>
-        <div style="font-size:15px;color:#1C2541;font-weight:bold;margin-bottom:4px;">${escapeHtml(item.product_name || '')}</div>
         <div style="font-size:12px;color:#5a6272;">
-          ${escapeHtml(item.maker || '')} | ${escapeHtml(channel?.name || item.channel_name || '未設定')} | 状態: ${escapeHtml(item.condition_rank || '—')}
+          ${escapeHtml(channel?.name || item.channel_name || '未設定')} | 状態: ${escapeHtml(item.condition_rank || '—')}
+          ${item.model_number ? ` | 型番: ${escapeHtml(item.model_number)}` : ''}
         </div>
+        ${item.memo ? `<div style="font-size:11px;color:#8a8a8a;margin-top:4px;line-height:1.4;">${escapeHtml(item.memo).slice(0, 100)}</div>` : ''}
       </div>
 
       <!-- 写真管理 -->
@@ -418,7 +551,18 @@ async function openListingWork(container, mgmtNum) {
             ✖ 作業キャンセル
           </button>
         </div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <button id="skipToNextBtn"
+            style="flex:1;padding:12px;border-radius:10px;border:1px solid #dde0e6;background:#ffffff;color:#5a6272;font-size:13px;cursor:pointer;">
+            ⏭ スキップ（次の商品）
+          </button>
+          <button id="goToListBtn"
+            style="flex:1;padding:12px;border-radius:10px;border:1px solid #dde0e6;background:#ffffff;color:#5a6272;font-size:13px;cursor:pointer;">
+            📋 一覧から探す
+          </button>
+        </div>
       </div>
+    </div>
     </div>
   `;
 
@@ -566,6 +710,33 @@ async function openListingWork(container, mgmtNum) {
       renderListView(container);
     });
   });
+
+  // スキップ（次の商品へ）
+  container.querySelector('#skipToNextBtn')?.addEventListener('click', () => {
+    showConfirm('この商品をスキップして次へ進みますか？', async () => {
+      stopTimer();
+      await db.unlockItem(item.mgmt_num);
+      // ステータスが出品作業中なら出品待ちに戻す
+      const current = await db.getItem(item.mgmt_num);
+      if (current?.status === CONFIG.STATUS.LISTING_WORK) {
+        await db.updateItemStatus(item.mgmt_num, CONFIG.STATUS.LIST_WAIT, staff.name);
+      }
+      workingItem = null;
+      openNextItem(container);
+    });
+  });
+
+  // 一覧から探す
+  container.querySelector('#goToListBtn')?.addEventListener('click', () => {
+    showConfirm('作業を途中保存して一覧に切り替えますか？', async () => {
+      await saveProgress(container, item.mgmt_num);
+      stopTimer();
+      await db.unlockItem(item.mgmt_num);
+      workingItem = null;
+      currentTab = 'list_wait';
+      renderListView(container);
+    }, () => {});
+  });
 }
 
 // ============================================================
@@ -582,8 +753,15 @@ async function generateAIListing(container, item, type) {
 
   try {
     const photos = item.photo_urls || [];
-    // 最大3枚の写真をbase64で送る（既にURLの場合はURLのまま）
-    const photoData = photos.slice(0, 3);
+    // セッション中に追加した写真も含める
+    const allPhotos = [...photos, ...sessionPhotos];
+    const photoData = allPhotos.slice(0, 3);
+
+    // 写真も商品名もない場合は警告
+    if (photoData.length === 0 && !item.product_name) {
+      showToast('写真または商品名が必要です');
+      return;
+    }
 
     const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
       method: 'POST',
@@ -595,21 +773,26 @@ async function generateAIListing(container, item, type) {
       body: JSON.stringify({
         image: photoData[0] || null,
         images: photoData.length > 0 ? photoData : null,
-        step: 'judge',
+        step: 'listing',
         context: {
           task: 'listing',
+          generateType: type,
           productName: item.product_name || '',
           maker: item.maker || '',
+          model: item.model || '',
           condition: item.condition || '',
+          conditionRank: item.condition_rank || '',
           channel: item.channel_name || '',
           operationStatus: item.operation_status || '',
           operationNote: item.operation_note || '',
+          category: item.category || '',
         },
       }),
     });
 
     if (!res.ok) {
-      throw new Error(`HTTP ${res.status}`);
+      const errBody = await res.text().catch(() => '');
+      throw new Error(`HTTP ${res.status}: ${errBody.slice(0, 200)}`);
     }
 
     const result = await res.json();
@@ -786,7 +969,8 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
 
     workingItem = null;
     showToast('出品完了しました');
-    renderListView(container);
+    // フローモードなら次の商品を自動表示
+    openNextItem(container);
 
   } catch (err) {
     console.error('出品完了エラー:', err);
@@ -1103,6 +1287,31 @@ function copyToClipboard(text) {
     fallbackCopy(text);
   }
 }
+
+// ============================================================
+//  作業中アイテムのクリーンアップ（画面離脱時）
+// ============================================================
+async function cleanupWorkingItem() {
+  if (workingItem) {
+    const staff = getCurrentStaff();
+    try {
+      // ロック解除
+      await db.unlockItem(workingItem.mgmt_num);
+      // 出品作業中→出品待ちに戻す（出品完了していない場合のみ）
+      const item = await db.getItem(workingItem.mgmt_num);
+      if (item && item.status === CONFIG.STATUS.LISTING_WORK) {
+        await db.updateItemStatus(workingItem.mgmt_num, CONFIG.STATUS.LIST_WAIT, staff?.name || '');
+      }
+    } catch (e) {
+      console.error('クリーンアップエラー:', e);
+    }
+    workingItem = null;
+    stopTimer();
+  }
+}
+
+// 他モジュールからのナビゲーション時に呼ばれる
+export { cleanupWorkingItem };
 
 function fallbackCopy(text) {
   const textarea = document.createElement('textarea');

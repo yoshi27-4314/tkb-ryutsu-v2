@@ -4,6 +4,7 @@
  */
 
 const routes = {};
+const beforeLeaveHooks = {};
 let currentRoute = null;
 let routeStack = [];
 
@@ -11,10 +12,19 @@ export function registerRoute(name, renderFn) {
   routes[name] = renderFn;
 }
 
+export function registerBeforeLeave(routeName, hookFn) {
+  beforeLeaveHooks[routeName] = hookFn;
+}
+
 export function navigate(name, params = {}) {
   if (!routes[name]) {
     console.error(`Route not found: ${name}`);
     return;
+  }
+
+  // 前の画面のクリーンアップ
+  if (currentRoute && beforeLeaveHooks[currentRoute]) {
+    try { beforeLeaveHooks[currentRoute](); } catch (e) { console.error('beforeLeave error:', e); }
   }
 
   // 履歴に追加

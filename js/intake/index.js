@@ -107,6 +107,7 @@ function resetState() {
     bulkRegisterResult: null,
     operationStatus: '',
     operationNote: '',
+    listingMemo: '',
   };
 }
 
@@ -257,7 +258,7 @@ function renderCapture() {
 
       <!-- 撮影エリア -->
       <div id="captureArea" style="background:#ffffff;border:2px dashed #dde0e6;border-radius:16px;
-           padding:${state.capturePhotos.length > 0 ? '20px' : '40px'} 20px;text-align:center;cursor:pointer;margin-bottom:16px;transition:border-color 0.2s;">
+           padding:${state.capturePhotos.length > 0 ? '16px' : '40px'} 20px;text-align:center;cursor:pointer;margin-bottom:12px;transition:border-color 0.2s;">
         ${state.capturePhotos.length > 0
           ? `<div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:8px;">
                ${state.capturePhotos.map((p, i) => `
@@ -267,11 +268,16 @@ function renderCapture() {
                    <button class="photo-del" data-idx="${i}" style="position:absolute;top:2px;right:2px;background:#CE2029;color:white;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:20px;padding:0;">✕</button>
                  </div>
                `).join('')}
+               <div style="width:90px;height:90px;border:2px dashed #C5A258;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+                 <span style="font-size:24px;color:#C5A258;">+</span>
+                 <span style="font-size:10px;color:#C5A258;">追加</span>
+               </div>
              </div>
-             <p style="color:#5a6272;font-size:13px;">タップして追加撮影（${state.capturePhotos.length}枚撮影済み）</p>`
+             <p style="color:#5a6272;font-size:12px;">${state.capturePhotos.length}枚撮影済み（タップで追加）</p>`
           : `<div style="font-size:48px;margin-bottom:12px;">📷</div>
              <p style="color:#5a6272;font-size:15px;font-weight:bold;">タップして撮影</p>
-             <p style="color:#8a8a8a;font-size:12px;">商品全体が映るように撮ってください</p>`
+             <p style="color:#8a8a8a;font-size:12px;">商品全体が映るように撮ってください</p>
+             <p style="color:#C5A258;font-size:12px;margin-top:4px;">複数枚撮影OK（ラベル・傷・背面など）</p>`
         }
       </div>
 
@@ -451,7 +457,7 @@ async function handleAIJudgment() {
     render();
   } catch (e) {
     console.error('AI判定失敗:', e);
-    containerRef.innerHTML = renderErrorScreen(
+    renderErrorScreen(
       'AI判定に失敗しました',
       e.message,
       [
@@ -572,6 +578,22 @@ function renderResult() {
       </div>
       ` : ''}
 
+      <!-- 出品メモ（出品担当への引き継ぎ） -->
+      <div style="background:#ffffff;border-radius:12px;padding:14px 16px;margin-bottom:12px;">
+        <p style="color:#5a6272;font-size:11px;margin-bottom:6px;">出品担当への引き継ぎメモ</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+          ${['箱なし','付属品なし','傷あり','汚れあり','ラベルに型番あり','セット欠品あり','匂いあり'].map(tag => `
+            <button class="memo-tag" data-tag="${tag}"
+              style="padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer;
+              border:1px solid #dde0e6;background:#ffffff;color:#5a6272;">
+              ${tag}
+            </button>
+          `).join('')}
+        </div>
+        <input type="text" id="listingMemo" placeholder="自由記入（例: 底に刻印あり）" value="${escapeHtml(state.listingMemo || '')}"
+          style="width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:13px;outline:none;">
+      </div>
+
       <!-- アクションボタン -->
       <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px;">
         <button id="resultOk"
@@ -605,6 +627,24 @@ function renderResult() {
     state.step = 'capture';
     render();
   });
+  // 出品メモのタグボタン
+  containerRef.querySelectorAll('.memo-tag').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tag = btn.dataset.tag;
+      const input = containerRef.querySelector('#listingMemo');
+      const current = input.value.trim();
+      if (current.includes(tag)) return; // 重複防止
+      input.value = current ? `${current} / ${tag}` : tag;
+      state.listingMemo = input.value;
+      btn.style.background = '#C5A258';
+      btn.style.color = '#000';
+      btn.style.borderColor = '#C5A258';
+    });
+  });
+  containerRef.querySelector('#listingMemo')?.addEventListener('input', (e) => {
+    state.listingMemo = e.target.value;
+  });
+
   containerRef.querySelector('#resultOk').addEventListener('click', () => handleConfirm(needsApproval));
   containerRef.querySelector('#resultConsult').addEventListener('click', handleConsult);
   containerRef.querySelector('#resultRetry').addEventListener('click', () => {
@@ -707,6 +747,14 @@ async function handleConfirm(needsApproval) {
   if (!staff) return;
   const r = state.aiResult;
 
+  // 手入力フィールドの値で上書き（ユーザーが修正した場合）
+  const editedName = containerRef.querySelector('#editProductName')?.value?.trim();
+  const editedMaker = containerRef.querySelector('#editMaker')?.value?.trim();
+  const editedModel = containerRef.querySelector('#editModelNumber')?.value?.trim();
+  if (editedName) r.productName = editedName;
+  if (editedMaker) r.maker = editedMaker;
+  if (editedModel) r.modelNumber = editedModel;
+
   showLoading(containerRef, '登録中...');
 
   try {
@@ -746,6 +794,7 @@ async function handleConfirm(needsApproval) {
       consignment_partner: isConsignmentSource(state.sourceType) ? getSourceLabel(state.sourceType) : '',
       operation_status: state.operationStatus || '',
       operation_note: state.operationNote || '',
+      listing_memo: state.listingMemo || '',
     };
 
     const created = await db.createItem(item);
@@ -849,6 +898,7 @@ function handleConsult() {
         consignment_partner: isConsignmentSource(state.sourceType) ? getSourceLabel(state.sourceType) : '',
         operation_status: state.operationStatus || '',
         operation_note: state.operationNote || '',
+        listing_memo: state.listingMemo || '',
       };
 
       const created = await db.createItem(item);
@@ -1176,10 +1226,10 @@ async function handleStorageConfirm() {
       storage_memo: state.storageMemo || null,
     });
 
-    // ステータスを撮影待ちに更新（写真が撮れていれば出品待ちに）
+    // 保管完了 → 写真あり: 出品待ち / 写真なし: 撮影待ち
     const photoCount = Object.keys(state.photos).length;
     const staff = getCurrentStaff();
-    const nextStatus = photoCount >= 1 ? CONFIG.STATUS.PHOTO_WAIT : CONFIG.STATUS.JUDGED;
+    const nextStatus = photoCount >= 1 ? CONFIG.STATUS.LIST_WAIT : CONFIG.STATUS.PHOTO_WAIT;
 
     await db.updateItemStatus(state.mgmtNum, nextStatus, staff?.name || '');
 
@@ -1205,7 +1255,7 @@ async function handleStorageConfirm() {
           body: JSON.stringify({
             image: photo,
             images: state.capturePhotos || [photo],
-            step: 'judge',
+            step: 'listing',
             context: {
               task: 'listing',
               productName: item.product_name || '',
@@ -1724,7 +1774,7 @@ async function handleBulkRegister() {
         start_price: item.price,
         target_price: item.price,
         estimated_price_max: item.price,
-        status: '出品待ち',
+        status: CONFIG.STATUS.PHOTO_WAIT,
         judged_by: staff.name,
         judged_at: new Date().toISOString(),
         received_at: new Date().toISOString(),
