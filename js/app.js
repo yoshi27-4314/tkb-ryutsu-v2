@@ -256,22 +256,6 @@ async function renderHome() {
         </div>
       </div>
 
-      <!-- クイックアクション -->
-      <div class="section-title">クイックアクション</div>
-      <div style="padding:0 16px;display:flex;flex-direction:column;gap:8px;">
-        <button class="btn btn-primary btn-full" onclick="window.__nav('intake')" style="font-size:16px;padding:16px;">
-          📷 撮影を開始する
-        </button>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <button class="btn btn-secondary" onclick="window.__nav('trade')">📦 出荷登録</button>
-          <button class="btn btn-secondary" onclick="window.__nav('ops', {tab:'expense'})">🧾 経費精算</button>
-        </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <button class="btn btn-secondary" onclick="window.__nav('ops', {tab:'attendance'})">🕐 出退勤</button>
-          <button class="btn btn-secondary" onclick="window.__nav('ops', {tab:'chat'})">💬 チャット</button>
-        </div>
-      </div>
-
       <!-- 今日の当番 -->
       ${duty && Object.keys(duty).length > 0 ? `
         <div class="section-title">今日の当番</div>
@@ -284,11 +268,19 @@ async function renderHome() {
         </div>
       ` : ''}
 
-      <!-- 確認/相談 待ちリスト（管理者のみ） -->
+      <!-- 確認/相談 待ちリスト（管理者のみ・折り畳み） -->
       ${staff.role === 'admin' && (counts['確認/相談'] || 0) > 0 ? `
-        <div class="section-title" style="color:var(--danger);">確認/相談 待ち（${counts['確認/相談']}件）</div>
-        <div id="consultList" style="padding:0 16px;">読み込み中...</div>
+        <div class="section-title" style="color:var(--danger);cursor:pointer;" id="consultToggle">
+          確認/相談 待ち（${counts['確認/相談']}件）<span id="consultArrow" style="font-size:12px;margin-left:4px;">▶</span>
+        </div>
+        <div id="consultList" style="padding:0 16px;display:none;">読み込み中...</div>
       ` : ''}
+
+      <!-- 今日の出勤メンバー -->
+      <div class="section-title">今日の出勤メンバー</div>
+      <div id="todayAttendance" class="card" style="padding:12px 16px;">
+        <div style="color:var(--text-secondary);font-size:13px;">読み込み中...</div>
+      </div>
 
       <div style="height:40px;"></div>
     </div>
@@ -297,22 +289,61 @@ async function renderHome() {
   // グローバルナビ関数
   window.__nav = (route, params) => navigate(route, params || {});
 
-  // 相談待ちリスト（管理者）
+  // 相談待ちリスト（管理者・折り畳み）
   if (staff.role === 'admin' && (counts['確認/相談'] || 0) > 0) {
-    const consultItems = await getItems({ status: ['確認/相談', '確認／相談', '確認/打合せ'] });
-    const consultEl = document.getElementById('consultList');
-    if (consultEl) {
-      consultEl.innerHTML = consultItems.map(item => `
-        <div class="card" style="margin:4px 0;cursor:pointer;">
-          <div style="display:flex;justify-content:space-between;">
-            <div>
-              <div style="font-weight:700;font-size:14px;">${escapeHtml(item.product_name)}</div>
-              <div style="font-size:12px;color:var(--text-secondary);">${item.mgmt_num} | ${escapeHtml(item.channel_name || item.channel || '')} | ${formatPrice(item.estimated_price_max)}</div>
+    let consultLoaded = false;
+    const toggleEl = document.getElementById('consultToggle');
+    const listEl = document.getElementById('consultList');
+    const arrowEl = document.getElementById('consultArrow');
+    if (toggleEl && listEl) {
+      toggleEl.addEventListener('click', async () => {
+        const isOpen = listEl.style.display !== 'none';
+        listEl.style.display = isOpen ? 'none' : 'block';
+        arrowEl.textContent = isOpen ? '▶' : '▼';
+        if (!consultLoaded) {
+          consultLoaded = true;
+          const consultItems = await getItems({ status: ['確認/相談', '確認／相談', '確認/打合せ'] });
+          listEl.innerHTML = consultItems.map(item => `
+            <div class="card" style="margin:4px 0;cursor:pointer;">
+              <div style="display:flex;justify-content:space-between;">
+                <div>
+                  <div style="font-weight:700;font-size:14px;">${escapeHtml(item.product_name)}</div>
+                  <div style="font-size:12px;color:var(--text-secondary);">${item.mgmt_num} | ${escapeHtml(item.channel_name || item.channel || '')} | ${formatPrice(item.estimated_price_max)}</div>
+                </div>
+                ${statusBadge(item.status)}
+              </div>
             </div>
-            ${statusBadge(item.status)}
-          </div>
-        </div>
-      `).join('') || '<p style="color:#5a6272;font-size:13px;">なし</p>';
+          `).join('') || '<p style="color:#5a6272;font-size:13px;">なし</p>';
+        }
+      });
+    }
+  }
+
+  // 今日の出勤メンバー
+  const attendanceEl = document.getElementById('todayAttendance');
+  if (attendanceEl) {
+    try {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const dbClient = getDB();
+      const { data: attendance } = dbClient
+        ? await dbClient.from('attendance').select('staff_name, clock_in, clock_out').eq('work_date', todayStr).order('clock_in')
+        : { data: [] };
+      if (attendance && attendance.length > 0) {
+        attendanceEl.innerHTML = attendance.map(a => {
+          const clockIn = a.clock_in ? new Date(a.clock_in).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
+          const clockOut = a.clock_out ? new Date(a.clock_out).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
+          const status = clockOut ? '退勤済' : '出勤中';
+          const statusColor = clockOut ? '#8a8a8a' : '#006B3F';
+          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;">
+            <span>${escapeHtml(a.staff_name)}</span>
+            <span style="color:${statusColor};">${clockIn}${clockOut ? ' - ' + clockOut : ''} <span style="font-size:11px;">${status}</span></span>
+          </div>`;
+        }).join('');
+      } else {
+        attendanceEl.innerHTML = '<div style="color:#8a8a8a;font-size:13px;">出勤記録なし</div>';
+      }
+    } catch {
+      attendanceEl.innerHTML = '<div style="color:#8a8a8a;font-size:13px;">取得できませんでした</div>';
     }
   }
 }
