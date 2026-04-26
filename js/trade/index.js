@@ -158,11 +158,14 @@ function renderList() {
         style="width:100%;padding:10px 12px;border-radius:8px;border:1px solid #dde0e6;background:#ffffff;color:#1C2541;font-size:14px;box-sizing:border-box;">
     </div>`;
 
-  // アクションバー（OCR取込ボタン）
+  // アクションバー
   const actionHtml = `
     <div style="padding:0 12px 8px;display:flex;gap:8px;">
-      <button id="btnOcrTransaction" style="flex:1;padding:10px;border-radius:8px;background:#C5A258;color:#000;border:none;font-size:13px;font-weight:bold;cursor:pointer;">
-        📸 取引ナビOCR
+      <button id="btnSalesImport" style="flex:1;padding:10px;border-radius:8px;background:#C5A258;color:#000;border:none;font-size:13px;font-weight:bold;cursor:pointer;">
+        📸 売上取込
+      </button>
+      <button id="btnOcrTransaction" style="flex:1;padding:10px;border-radius:8px;background:#f0ede5;color:#C5A258;border:1px solid #C5A258;font-size:13px;font-weight:bold;cursor:pointer;">
+        📋 取引ナビOCR
       </button>
       ${_activeTab === 'ship' ? `
         <button id="btnEhidenCsv" style="flex:1;padding:10px;border-radius:8px;background:#f0ede5;color:#C5A258;border:1px solid #C5A258;font-size:13px;font-weight:bold;cursor:pointer;">
@@ -217,6 +220,9 @@ function renderList() {
       }, 400);
     });
   }
+
+  const btnSalesImport = _container.querySelector('#btnSalesImport');
+  if (btnSalesImport) btnSalesImport.addEventListener('click', handleSalesImport);
 
   const btnOcr = _container.querySelector('#btnOcrTransaction');
   if (btnOcr) btnOcr.addEventListener('click', handleTransactionOcr);
@@ -1606,6 +1612,224 @@ async function handleTroubleNext(item) {
       showToast('更新に失敗しました');
       renderDetail(item);
     }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// クリーンアップ
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
+// 売上取込（スクショからAI読み取り → 一括ステータス更新）
+// ---------------------------------------------------------------------------
+
+async function handleSalesImport() {
+  // スクショ撮影/選択
+  let file;
+  try {
+    file = await capturePhoto();
+    if (!file) return;
+  } catch { return; }
+
+  showLoading(_container, '📸 スクショを解析中...');
+
+  try {
+    const base64 = await fileToBase64(file);
+    const resized = await resizeImage(base64, 1600);
+
+    // Edge Functionでスクショ解析
+    const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-judge`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
+        'apikey': CONFIG.AWAI_KEY,
+      },
+      body: JSON.stringify({
+        image: resized,
+        step: 'sales_import',
+        context: { task: 'sales_import' },
+      }),
+    });
+
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const result = await res.json();
+    const items = result.success
+      ? (Array.isArray(result.judgment) ? result.judgment : [result.judgment])
+      : [];
+
+    if (items.length === 0) {
+      showToast('商品情報を読み取れませんでした');
+      renderList();
+      return;
+    }
+
+    renderSalesImportResult(items, resized);
+  } catch (err) {
+    console.error('売上取込エラー:', err);
+    showToast('スクショの解析に失敗しました');
+    renderList();
+  }
+}
+
+/** 売上取込の解析結果画面 */
+async function renderSalesImportResult(ocrItems, screenshotBase64) {
+  const staff = getCurrentStaff();
+
+  // ヤフオクステータス → アプリステータスのマッピング
+  const YAHOO_STATUS_MAP = {
+    '受取連絡がされました': '受取確認',
+    '発送完了しました': '発送済み',
+    '発送をしてください': '入金確認済み',
+    '落札者からの入金待ちです': '入金待ち',
+    '落札者からの連絡待ちです': '連絡待ち',
+    '決済を確認してください': '入金確認済み',
+    '送料を連絡してください': '落札済み',
+    '取引メッセージがあります': null, // 個別判断
+  };
+
+  // DBから商品名で照合
+  for (const item of ocrItems) {
+    item.matched = false;
+    item.dbItem = null;
+    item.newStatus = null;
+
+    // ヤフオクステータスからアプリステータスを決定
+    if (item.yahooStatus) {
+      item.newStatus = YAHOO_STATUS_MAP[item.yahooStatus] || '落札済み';
+    } else {
+      item.newStatus = '落札済み';
+    }
+
+    // 商品タイトルでDB検索（部分一致）
+    if (item.title) {
+      const searchTerms = item.title.slice(0, 20);
+      const filters = { search: searchTerms, limit: 5 };
+      const candidates = await db.getItems(filters);
+      if (candidates.length > 0) {
+        item.matched = true;
+        item.dbItem = candidates[0];
+      }
+    }
+
+    // 商品IDでも検索
+    if (!item.matched && item.productId) {
+      const filters = { search: item.productId, limit: 3 };
+      const candidates = await db.getItems(filters);
+      if (candidates.length > 0) {
+        item.matched = true;
+        item.dbItem = candidates[0];
+      }
+    }
+  }
+
+  const matchedItems = ocrItems.filter(i => i.matched);
+  const unmatchedItems = ocrItems.filter(i => !i.matched);
+
+  _container.innerHTML = `
+    <div style="padding:16px 16px 100px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <button id="siBack" style="background:none;border:none;color:#C5A258;font-size:22px;cursor:pointer;padding:4px 8px;">←</button>
+        <h2 style="color:#C5A258;font-size:18px;margin:0;">売上取込</h2>
+      </div>
+
+      <!-- スクショプレビュー -->
+      <div style="margin-bottom:12px;">
+        <img src="${screenshotBase64}" style="width:100%;max-height:150px;object-fit:cover;border-radius:8px;border:1px solid #dde0e6;">
+      </div>
+
+      <!-- 読取結果サマリー -->
+      <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #dde0e6;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="color:#5a6272;font-size:13px;">読取結果</span>
+          <span style="color:#C5A258;font-size:18px;font-weight:bold;">${ocrItems.length}件</span>
+        </div>
+        <div style="display:flex;gap:16px;margin-top:6px;font-size:12px;">
+          <span style="color:#006B3F;">✅ DB一致: ${matchedItems.length}件</span>
+          <span style="color:#CE2029;">❌ 不一致: ${unmatchedItems.length}件</span>
+        </div>
+      </div>
+
+      <!-- 一致した商品リスト -->
+      ${matchedItems.length > 0 ? `
+        <h3 style="color:#1C2541;font-size:14px;margin-bottom:8px;">更新する商品</h3>
+        ${matchedItems.map((item, i) => `
+          <div class="si-item" data-idx="${i}" style="background:#ffffff;border-radius:10px;padding:12px;margin-bottom:8px;border:1px solid #dde0e6;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+              <span style="color:#C5A258;font-size:12px;font-weight:bold;">${escapeHtml(item.dbItem.mgmt_num)}</span>
+              <div style="display:flex;gap:4px;">
+                ${statusBadge(item.dbItem.status)}
+                <span style="font-size:11px;color:#5a6272;">→</span>
+                ${statusBadge(item.newStatus)}
+              </div>
+            </div>
+            <div style="font-size:13px;color:#1C2541;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+              ${escapeHtml(item.dbItem.product_name)}
+            </div>
+            ${item.price ? `<div style="font-size:13px;color:#006B3F;font-weight:bold;margin-top:2px;">¥${Number(item.price).toLocaleString()}</div>` : ''}
+          </div>
+        `).join('')}
+      ` : ''}
+
+      <!-- 不一致リスト -->
+      ${unmatchedItems.length > 0 ? `
+        <h3 style="color:#5a6272;font-size:13px;margin-top:16px;margin-bottom:8px;">DBに見つからなかった商品</h3>
+        ${unmatchedItems.map(item => `
+          <div style="background:#f8f5ee;border-radius:10px;padding:10px;margin-bottom:6px;border:1px solid #e8e5dd;">
+            <div style="font-size:12px;color:#5a6272;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.title || '(読取不可)')}</div>
+            ${item.price ? `<div style="font-size:12px;color:#5a6272;">¥${Number(item.price).toLocaleString()}</div>` : ''}
+          </div>
+        `).join('')}
+      ` : ''}
+
+      <!-- 一括更新ボタン -->
+      ${matchedItems.length > 0 ? `
+        <button id="siApplyAll"
+          style="width:100%;padding:16px;border-radius:12px;border:none;background:#C5A258;color:#000;font-size:16px;font-weight:bold;cursor:pointer;margin-top:16px;">
+          ✅ ${matchedItems.length}件を一括更新
+        </button>
+      ` : ''}
+
+      <button id="siRetake"
+        style="width:100%;padding:12px;border-radius:12px;border:1px solid #dde0e6;background:transparent;color:#5a6272;font-size:13px;cursor:pointer;margin-top:8px;">
+        📷 別のスクショを取り込む
+      </button>
+    </div>
+  `;
+
+  // イベント
+  _container.querySelector('#siBack')?.addEventListener('click', () => renderList());
+
+  _container.querySelector('#siRetake')?.addEventListener('click', () => handleSalesImport());
+
+  _container.querySelector('#siApplyAll')?.addEventListener('click', async () => {
+    const btn = _container.querySelector('#siApplyAll');
+    btn.textContent = '更新中...';
+    btn.disabled = true;
+
+    let updated = 0;
+    for (const item of matchedItems) {
+      try {
+        const updates = {};
+        if (item.price) updates.sold_price = parseInt(item.price) || null;
+        if (item.newStatus === '受取確認' || item.newStatus === '完了') {
+          updates.completed_at = new Date().toISOString();
+        }
+        await db.updateItemStatus(
+          item.dbItem.mgmt_num,
+          item.newStatus,
+          staff?.name || '',
+          updates
+        );
+        updated++;
+      } catch (e) {
+        console.error(`更新失敗: ${item.dbItem.mgmt_num}`, e);
+      }
+    }
+
+    showToast(`${updated}件のステータスを更新しました`);
+    _activeTab = 'sold';
+    await loadAndRender();
   });
 }
 
