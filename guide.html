@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>テイクバック流通 v2 ガイド</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Noto Sans JP', sans-serif; background: #F8F5EE; color: #1C2541; line-height: 1.7; }
+
+/* ヘッダー */
+.hero { background: linear-gradient(135deg, #C5A258 0%, #a8893e 100%); color: #fff; padding: 40px 20px; text-align: center; }
+.hero h1 { font-size: 28px; margin-bottom: 8px; }
+.hero p { font-size: 14px; opacity: 0.9; }
+.hero .version { display: inline-block; background: rgba(255,255,255,0.2); padding: 4px 12px; border-radius: 20px; font-size: 12px; margin-top: 12px; }
+
+/* ナビ */
+.nav-tabs { display: flex; position: sticky; top: 0; z-index: 100; background: #fff; border-bottom: 1px solid #dde0e6; }
+.nav-tabs button { flex: 1; padding: 14px 8px; border: none; background: none; font-size: 13px; font-weight: 500; color: #5a6272; cursor: pointer; border-bottom: 3px solid transparent; }
+.nav-tabs button.active { color: #C5A258; border-bottom-color: #C5A258; font-weight: 700; }
+
+/* セクション */
+.section { display: none; padding: 20px 16px 40px; max-width: 800px; margin: 0 auto; }
+.section.active { display: block; }
+.section h2 { color: #C5A258; font-size: 22px; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #C5A258; }
+.section h3 { color: #1C2541; font-size: 16px; margin: 24px 0 12px; }
+
+/* カテゴリカード */
+.cat-card { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #dde0e6; }
+.cat-card .cat-icon { font-size: 32px; margin-bottom: 8px; }
+.cat-card .cat-title { font-size: 17px; font-weight: 700; color: #1C2541; margin-bottom: 6px; }
+.cat-card .cat-desc { font-size: 13px; color: #5a6272; margin-bottom: 12px; }
+.feat-list { list-style: none; }
+.feat-list li { padding: 8px 0; border-bottom: 1px solid #f0ede6; font-size: 13px; display: flex; align-items: flex-start; gap: 8px; }
+.feat-list li:last-child { border-bottom: none; }
+.feat-list .feat-badge { display: inline-block; background: #C5A258; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; margin-top: 2px; }
+.feat-list .feat-badge.new { background: #006B3F; }
+.feat-list .feat-badge.fix { background: #CE2029; }
+
+/* フローチャート */
+.flow-container { background: #fff; border-radius: 16px; padding: 20px; margin-bottom: 20px; border: 1px solid #dde0e6; }
+.flow-step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 4px; }
+.flow-num { width: 32px; height: 32px; border-radius: 50%; background: #C5A258; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.flow-content { flex: 1; padding-bottom: 16px; border-left: 2px solid #e8e5dd; margin-left: -28px; padding-left: 40px; }
+.flow-step:last-child .flow-content { border-left: 2px solid transparent; }
+.flow-title { font-size: 14px; font-weight: 700; color: #1C2541; }
+.flow-desc { font-size: 12px; color: #5a6272; margin-top: 2px; }
+.flow-who { display: inline-block; background: #f0ede6; color: #5a6272; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 4px; }
+.flow-app { display: inline-block; background: #C5A25822; color: #C5A258; font-size: 10px; padding: 2px 8px; border-radius: 10px; margin-top: 4px; margin-left: 4px; }
+
+/* ステータス */
+.status-flow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 12px 0; }
+.status-tag { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 500; }
+.status-tag.intake { background: #FF950022; color: #FF9500; }
+.status-tag.sales { background: #007AFF22; color: #007AFF; }
+.status-tag.trade { background: #34C75922; color: #34C759; }
+.status-tag.done { background: #8E8E9322; color: #8E8E93; }
+.arrow { color: #ccc; font-size: 14px; }
+
+/* Tips */
+.tip { background: #C5A25811; border-left: 3px solid #C5A258; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 12px 0; font-size: 13px; }
+.tip strong { color: #C5A258; }
+
+/* 変更点 */
+.change-card { background: #fff; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; border-left: 4px solid #006B3F; }
+.change-card.breaking { border-left-color: #CE2029; }
+.change-card .change-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.change-card .change-desc { font-size: 12px; color: #5a6272; }
+
+@media (max-width: 600px) {
+  .hero h1 { font-size: 22px; }
+  .nav-tabs button { font-size: 11px; padding: 12px 4px; }
+}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>テイクバック流通 v2</h1>
+  <p>業務ガイド・機能一覧</p>
+  <span class="version">v2.0 — 2026年4月27日更新</span>
+</div>
+
+<div class="nav-tabs">
+  <button class="active" data-tab="overview">概要</button>
+  <button data-tab="features">機能一覧</button>
+  <button data-tab="flow">作業フロー</button>
+  <button data-tab="changes">変更点</button>
+</div>
+
+<!-- ===== 概要 ===== -->
+<div class="section active" id="tab-overview">
+  <h2>アプリでできること</h2>
+  <p style="font-size:14px;color:#5a6272;margin-bottom:20px;">テイクバック流通の全業務をスマホ1台で完結できます。</p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+    <div style="background:#fff;border-radius:12px;padding:16px;text-align:center;border:1px solid #dde0e6;">
+      <div style="font-size:28px;">📷</div>
+      <div style="font-size:13px;font-weight:700;margin-top:6px;">分荷判定</div>
+      <div style="font-size:11px;color:#5a6272;">写真→AI判定→登録</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:16px;text-align:center;border:1px solid #dde0e6;">
+      <div style="font-size:28px;">🏷️</div>
+      <div style="font-size:13px;font-weight:700;margin-top:6px;">出品管理</div>
+      <div style="font-size:11px;color:#5a6272;">AI生成→コピー→出品</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:16px;text-align:center;border:1px solid #dde0e6;">
+      <div style="font-size:28px;">📦</div>
+      <div style="font-size:13px;font-weight:700;margin-top:6px;">取引・発送</div>
+      <div style="font-size:11px;color:#5a6272;">売上取込→梱包→発送</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:16px;text-align:center;border:1px solid #dde0e6;">
+      <div style="font-size:28px;">⚙️</div>
+      <div style="font-size:13px;font-weight:700;margin-top:6px;">業務管理</div>
+      <div style="font-size:11px;color:#5a6272;">経費・勤怠・KPI</div>
+    </div>
+  </div>
+
+  <h3>ステータスの流れ</h3>
+  <div class="status-flow">
+    <span class="status-tag intake">受取済み</span><span class="arrow">→</span>
+    <span class="status-tag intake">分荷確定</span><span class="arrow">→</span>
+    <span class="status-tag intake">撮影待ち</span><span class="arrow">→</span>
+    <span class="status-tag sales">出品待ち</span><span class="arrow">→</span>
+    <span class="status-tag sales">出品中</span><span class="arrow">→</span>
+    <span class="status-tag trade">落札済み</span><span class="arrow">→</span>
+    <span class="status-tag trade">入金待ち</span><span class="arrow">→</span>
+    <span class="status-tag trade">梱包待ち</span><span class="arrow">→</span>
+    <span class="status-tag trade">発送済み</span><span class="arrow">→</span>
+    <span class="status-tag done">完了</span>
+  </div>
+
+  <div class="tip">
+    <strong>ポイント：</strong>商品が保管場所に入った時点で「出品待ち」になります。写真がない商品は出品に進めません。
+  </div>
+</div>
+
+<!-- ===== 機能一覧 ===== -->
+<div class="section" id="tab-features">
+  <h2>機能カテゴリ一覧</h2>
+
+  <!-- 分荷判定 -->
+  <div class="cat-card">
+    <div class="cat-icon">📷</div>
+    <div class="cat-title">分荷判定（入荷タブ）</div>
+    <div class="cat-desc">商品を撮影してAIが自動で判定。販売チャンネル・価格・状態を決定します。</div>
+    <ul class="feat-list">
+      <li><span class="feat-badge">基本</span>写真撮影 → AI判定 → 管理番号発行 → 保管場所登録</li>
+      <li><span class="feat-badge">基本</span>複数枚撮影（ラベル・傷・背面など何枚でもOK）</li>
+      <li><span class="feat-badge">基本</span>AI判定結果の手入力修正（商品名・メーカー・型番）</li>
+      <li><span class="feat-badge new">NEW</span>出品メモ（出品担当への引き継ぎ — 定型タグ＋自由記入）</li>
+      <li><span class="feat-badge">基本</span>動作確認ステータス（正常/通電のみ/未確認/不良）</li>
+      <li><span class="feat-badge">基本</span>浅野承認が必要な商品は自動で「確認/相談」に振り分け</li>
+      <li><span class="feat-badge">基本</span>渡辺質店 一括登録（手書きシートOCR）</li>
+      <li><span class="feat-badge">基本</span>バーコード/ISBN読み取り（書籍用）</li>
+      <li><span class="feat-badge">基本</span>サイズ計測入力（幅・高さ・奥行・重さ）</li>
+    </ul>
+  </div>
+
+  <!-- 出品管理 -->
+  <div class="cat-card">
+    <div class="cat-icon">🏷️</div>
+    <div class="cat-title">出品管理（出品タブ）</div>
+    <div class="cat-desc">出品タイトル・説明文をAI生成。コピーしてヤフオクに貼るだけ。</div>
+    <ul class="feat-list">
+      <li><span class="feat-badge new">NEW</span>フローモード — 出品タブを開くと最優先商品が即表示。完了→次へ自動進行</li>
+      <li><span class="feat-badge new">NEW</span>管理番号スティッキーヘッダー — スクロールしても常に表示</li>
+      <li><span class="feat-badge new">NEW</span>写真サムネイル・分荷メモ付きカード表示</li>
+      <li><span class="feat-badge">基本</span>AI出品タイトル生成（チャンネル別ルール自動適用）</li>
+      <li><span class="feat-badge">基本</span>AI出品説明文生成（状態・送料・取引詳細テンプレート自動付与）</li>
+      <li><span class="feat-badge">基本</span>ワンタップコピー（タイトル/説明文）</li>
+      <li><span class="feat-badge">基本</span>価格設定（開始価格・目標価格・最低出品価格チェック）</li>
+      <li><span class="feat-badge">基本</span>販売チャンネル変更</li>
+      <li><span class="feat-badge">基本</span>再出品・ステータス戻し</li>
+      <li><span class="feat-badge">基本</span>写真追加（セッション中の撮影+Drive保存）</li>
+      <li><span class="feat-badge">基本</span>作業タイマー（10分超え警告）</li>
+      <li><span class="feat-badge new">NEW</span>写真なし商品 → 撮影誘導画面を表示</li>
+      <li><span class="feat-badge">基本</span>スキップ・一覧切り替え自由</li>
+    </ul>
+  </div>
+
+  <!-- 取引管理 -->
+  <div class="cat-card">
+    <div class="cat-icon">📦</div>
+    <div class="cat-title">取引管理（取引ナビタブ）</div>
+    <div class="cat-desc">落札から発送・完了まで。売上取込でヤフオクと連動。</div>
+    <ul class="feat-list">
+      <li><span class="feat-badge new">NEW</span>売上取込 — ヤフオクのスクショをAIで読み取り、一括ステータス更新</li>
+      <li><span class="feat-badge">基本</span>取引ナビOCR（ヤフオク取引画面の読み取り）</li>
+      <li><span class="feat-badge">基本</span>ステータス進行（落札→連絡→入金→梱包→発送→完了）</li>
+      <li><span class="feat-badge">基本</span>梱包タイマー・梱包作業画面</li>
+      <li><span class="feat-badge">基本</span>出荷（配送先地域選択・送料自動計算）</li>
+      <li><span class="feat-badge">基本</span>E飛伝CSV出力（佐川急便連携）</li>
+      <li><span class="feat-badge">基本</span>売上登録・粗利計算</li>
+      <li><span class="feat-badge">基本</span>トラブルフロー（商品問題→運送会社→返金等）</li>
+      <li><span class="feat-badge">基本</span>委託返却</li>
+    </ul>
+  </div>
+
+  <!-- 業務管理 -->
+  <div class="cat-card">
+    <div class="cat-icon">⚙️</div>
+    <div class="cat-title">業務管理（業務タブ）</div>
+    <div class="cat-desc">日々の業務運営に必要な管理機能。</div>
+    <ul class="feat-list">
+      <li><span class="feat-badge">基本</span>経費精算（レシートOCR・立替・小口現金・月別集計）</li>
+      <li><span class="feat-badge">基本</span>出退勤（時計ピッカー・カレンダー・休暇届・修正/削除）</li>
+      <li><span class="feat-badge">基本</span>AIチャット（業務質問に回答）</li>
+      <li><span class="feat-badge">基本</span>KPI（今日の分荷/出品/梱包の実績と目標）</li>
+      <li><span class="feat-badge">基本</span>個人実績</li>
+      <li><span class="feat-badge">基本</span>新しい声（改善提案の投稿）</li>
+      <li><span class="feat-badge">基本</span>委託レポート・CSV出力</li>
+    </ul>
+  </div>
+
+  <!-- ホーム -->
+  <div class="cat-card">
+    <div class="cat-icon">🏠</div>
+    <div class="cat-title">ホーム画面</div>
+    <div class="cat-desc">全体の状況を一目で把握。</div>
+    <ul class="feat-list">
+      <li><span class="feat-badge">基本</span>今日の当番表示</li>
+      <li><span class="feat-badge">基本</span>確認/相談待ち一覧（浅野さんの判断待ち）</li>
+      <li><span class="feat-badge">基本</span>滞留アラート（長期間動いていない商品）</li>
+      <li><span class="feat-badge">基本</span>今日の実績（分荷/出品/梱包/出荷）</li>
+      <li><span class="feat-badge">基本</span>在庫ステータス（入荷待ち/出品待ち/出品中/取引中）</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== 作業フロー ===== -->
+<div class="section" id="tab-flow">
+  <h2>作業フロー</h2>
+
+  <!-- 分荷フロー -->
+  <h3>📷 分荷（入荷〜保管）</h3>
+  <div class="flow-container">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-content">
+        <div class="flow-title">仕入先を選択</div>
+        <div class="flow-desc">自社/渡辺質店/ビッグスポーツ/シマチヨから選択</div>
+        <span class="flow-who">分荷担当</span><span class="flow-app">分荷判定タブ</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-content">
+        <div class="flow-title">商品を撮影</div>
+        <div class="flow-desc">複数枚OK。ラベル・傷・背面も撮ると精度UP。方眼シートでサイズ自動推定</div>
+        <span class="flow-who">分荷担当</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-content">
+        <div class="flow-title">AI判定を実行</div>
+        <div class="flow-desc">商品名・メーカー・状態・販売チャンネル・価格をAIが自動判定。間違っていたら手入力で修正できます</div>
+        <span class="flow-app">自動</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-content">
+        <div class="flow-title">出品メモを入力</div>
+        <div class="flow-desc">出品担当への引き継ぎ情報。「箱なし」「傷あり」等の定型タグをタップ or 自由記入</div>
+        <span class="flow-who">分荷担当</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">5</div>
+      <div class="flow-content">
+        <div class="flow-title">確定 → 追加撮影</div>
+        <div class="flow-desc">管理番号が発行されます。正面・背面・状態・タグ等の追加写真を撮影</div>
+        <span class="flow-who">分荷担当</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">6</div>
+      <div class="flow-content">
+        <div class="flow-title">保管場所を登録</div>
+        <div class="flow-desc">拠点（厚見/本荘/柳津）→ エリア選択。保管完了で「出品待ち」に自動遷移</div>
+        <span class="flow-who">分荷担当</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 出品フロー -->
+  <h3>🏷️ 出品</h3>
+  <div class="flow-container">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-content">
+        <div class="flow-title">出品タブを開く → 商品が自動表示</div>
+        <div class="flow-desc">優先度が高い商品から順に表示されます。選ぶ必要なし</div>
+        <span class="flow-who">出品担当</span><span class="flow-app">出品タブ</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-content">
+        <div class="flow-title">AI生成ボタンでタイトル・説明文を生成</div>
+        <div class="flow-desc">チャンネルに合わせた出品ルール（アイロンポット=タグボート方式、ブロカント=型番方式）で自動生成</div>
+        <span class="flow-app">自動</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-content">
+        <div class="flow-title">コピー → ヤフオクに貼り付け</div>
+        <div class="flow-desc">「コピー」ボタンでクリップボードにコピー。ヤフオクの出品画面に貼り付け</div>
+        <span class="flow-who">出品担当</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-content">
+        <div class="flow-title">「出品完了」タップ → 次の商品が自動表示</div>
+        <div class="flow-desc">ステータスが「出品中」に変わり、次の出品待ち商品が自動で開きます</div>
+        <span class="flow-who">出品担当</span>
+      </div>
+    </div>
+  </div>
+  <div class="tip">
+    <strong>フローモード：</strong>「開く→AI生成→コピー→貼る→完了→次」の繰り返し。リストに戻る操作は不要です。特定の商品を探したい時は「📋 一覧から探す」ボタンで切り替え。
+  </div>
+
+  <!-- 売上取込フロー -->
+  <h3>📸 売上取込（落札報告）</h3>
+  <div class="flow-container">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-content">
+        <div class="flow-title">ヤフオクの「落札者あり」画面をスクショ</div>
+        <div class="flow-desc">今までと同じ作業。出品終了分のスクショを撮る</div>
+        <span class="flow-who">売上管理担当</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-content">
+        <div class="flow-title">取引ナビタブ →「📸 売上取込」</div>
+        <div class="flow-desc">スクショを取り込むとAIが商品情報を読み取ります</div>
+        <span class="flow-who">売上管理担当</span><span class="flow-app">取引ナビタブ</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-content">
+        <div class="flow-title">読取結果を確認 →「一括更新」</div>
+        <div class="flow-desc">DBの商品と自動照合。ヤフオクのステータスがアプリに反映されます</div>
+        <span class="flow-app">自動変換</span>
+      </div>
+    </div>
+  </div>
+  <div class="tip">
+    <strong>ステータス自動変換：</strong>
+    「受取連絡がされました」→ 受取確認 ／
+    「発送完了しました」→ 発送済み ／
+    「発送をしてください」→ 入金確認済み ／
+    「入金待ちです」→ 入金待ち
+  </div>
+
+  <!-- 梱包・発送フロー -->
+  <h3>📦 梱包・発送</h3>
+  <div class="flow-container">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-content">
+        <div class="flow-title">取引ナビ →「梱包待ち」タブ</div>
+        <div class="flow-desc">梱包が必要な商品の一覧が表示されます</div>
+        <span class="flow-who">梱包担当</span><span class="flow-app">取引ナビタブ</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-content">
+        <div class="flow-title">商品をタップ → 梱包開始</div>
+        <div class="flow-desc">タイマーが自動開始。管理番号で棚から商品を見つけて梱包</div>
+        <span class="flow-who">梱包担当</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-content">
+        <div class="flow-title">梱包完了 → 発送準備</div>
+        <div class="flow-desc">配送先地域を選択すると送料が自動計算。E飛伝CSVも出力可能</div>
+        <span class="flow-who">梱包担当</span>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-content">
+        <div class="flow-title">追跡番号入力 → 発送完了</div>
+        <div class="flow-desc">送り状の追跡番号を入力して発送完了。ステータスが「発送済み」に</div>
+        <span class="flow-who">梱包担当</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 変更点 ===== -->
+<div class="section" id="tab-changes">
+  <h2>最新の変更点（4/27）</h2>
+  <p style="font-size:13px;color:#5a6272;margin-bottom:16px;">スタッフフィードバック（林・横山）に基づく改善</p>
+
+  <h3>動作が変わったもの</h3>
+  <div class="change-card breaking">
+    <div class="change-title">出品タブの動作変更</div>
+    <div class="change-desc">出品タブを開くと、最優先の商品が即座に表示されます（フローモード）。以前のように一覧は表示されません。一覧で探したい時は「📋 一覧から探す」ボタンを使ってください。</div>
+  </div>
+  <div class="change-card breaking">
+    <div class="change-title">写真なし商品は出品に進めない</div>
+    <div class="change-desc">写真が登録されていない商品は、出品作業画面ではなく「写真を撮影してください」画面が表示されます。先に撮影してから出品してください。</div>
+  </div>
+
+  <h3>新機能</h3>
+  <div class="change-card">
+    <div class="change-title">📸 売上取込</div>
+    <div class="change-desc">取引ナビタブに追加。ヤフオクの落札画面のスクショを撮影すると、AIが商品を読み取って一括でステータスを更新します。</div>
+  </div>
+  <div class="change-card">
+    <div class="change-title">📝 出品メモ</div>
+    <div class="change-desc">分荷判定の確定画面に追加。「箱なし」「傷あり」等のタグをタップするだけで、出品担当への引き継ぎメモが残せます。</div>
+  </div>
+  <div class="change-card">
+    <div class="change-title">📌 管理番号スティッキーヘッダー</div>
+    <div class="change-desc">出品作業画面で、スクロールしても管理番号・商品名・タイマーが常に表示されます。</div>
+  </div>
+
+  <h3>不具合修正</h3>
+  <div class="change-card">
+    <div class="change-title">AI判定失敗時の「再試行」「撮り直す」ボタンが反応しない問題を修正</div>
+    <div class="change-desc"></div>
+  </div>
+  <div class="change-card">
+    <div class="change-title">出品済み商品が「出品作業中」に戻ってしまう問題を修正</div>
+    <div class="change-desc"></div>
+  </div>
+  <div class="change-card">
+    <div class="change-title">出品作業中に別画面へ移動した時、ロックが残る問題を修正</div>
+    <div class="change-desc">自動でロック解除・ステータス復帰するようになりました。</div>
+  </div>
+  <div class="change-card">
+    <div class="change-title">AI出品タイトル・説明文が生成されない問題を修正</div>
+    <div class="change-desc">写真がなくても商品情報からタイトルを生成できるようになりました。</div>
+  </div>
+  <div class="change-card">
+    <div class="change-title">AI素材判定の精度向上</div>
+    <div class="change-desc">プラスチック製を漆器と判定する等の問題を改善。素材判定ルールを追加しました。</div>
+  </div>
+</div>
+
+<div style="text-align:center;padding:40px 20px;color:#8a8a8a;font-size:12px;">
+  テイクバック流通 v2.0 — ファーストエイトグループ
+</div>
+
+<script>
+document.querySelectorAll('.nav-tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    window.scrollTo(0, 0);
+  });
+});
+</script>
+</body>
+</html>
