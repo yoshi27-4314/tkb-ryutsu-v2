@@ -197,7 +197,7 @@ async function renderHome() {
         <div class="section-title" style="color:var(--danger);">滞留アラート（${staleItems.length}件）</div>
         <div style="padding:0 16px;">
           ${staleItems.slice(0, 5).map(item => `
-            <div style="background:#ffffff;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;border:1px solid #dde0e6;box-shadow:0 1px 4px rgba(28,37,65,0.06);">
+            <div class="stale-card" data-mgmt="${escapeHtml(item.mgmt_num)}" style="background:#ffffff;border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;border:1px solid #dde0e6;box-shadow:0 1px 4px rgba(28,37,65,0.06);cursor:pointer;">
               <div>
                 <span style="color:#C5A258;font-size:12px;">${item.mgmt_num}</span>
                 <div style="font-size:13px;color:#1C2541;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;">${item.product_name}</div>
@@ -211,8 +211,8 @@ async function renderHome() {
         </div>
       ` : ''}
 
-      <!-- 今日の実績 -->
-      <div class="section-title">今日の実績</div>
+      <!-- 今日のチーム実績 -->
+      <div class="section-title">今日のチーム実績</div>
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-num" style="color:var(--info);">${todayStats.judged}</div>
@@ -304,7 +304,7 @@ async function renderHome() {
           consultLoaded = true;
           const consultItems = await getItems({ status: ['確認/相談', '確認／相談', '確認/打合せ'] });
           listEl.innerHTML = consultItems.map(item => `
-            <div class="card" style="margin:4px 0;cursor:pointer;">
+            <div class="consult-card" data-mgmt="${escapeHtml(item.mgmt_num)}" style="margin:4px 0;cursor:pointer;background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #dde0e6;">
               <div style="display:flex;justify-content:space-between;">
                 <div>
                   <div style="font-weight:700;font-size:14px;">${escapeHtml(item.product_name)}</div>
@@ -314,38 +314,95 @@ async function renderHome() {
               </div>
             </div>
           `).join('') || '<p style="color:#5a6272;font-size:13px;">なし</p>';
+          // 相談カードのタップイベント
+          listEl.querySelectorAll('.consult-card').forEach(card => {
+            card.addEventListener('click', () => {
+              const mgmt = card.dataset.mgmt;
+              const statusModule = CONFIG.STATUS_MODULE[card.querySelector('[data-status]')?.dataset.status] || 'sales';
+              navigate('sales', { mgmtNum: mgmt });
+            });
+          });
         }
       });
     }
   }
 
-  // 今日の出勤メンバー
+  // 今日の出勤メンバー（デフォルト予定+実際の出退勤+休み連絡）
   const attendanceEl = document.getElementById('todayAttendance');
   if (attendanceEl) {
     try {
       const todayStr = new Date().toISOString().slice(0, 10);
+      const dow = today.getDay();
+
+      // DB出退勤データ取得
       const dbClient = getDB();
-      const { data: attendance } = dbClient
-        ? await dbClient.from('attendance').select('staff_name, clock_in, clock_out').eq('work_date', todayStr).order('clock_in')
+      const { data: dbAttendance } = dbClient
+        ? await dbClient.from('attendance').select('staff_name, clock_in, clock_out, note').eq('work_date', todayStr).order('clock_in')
         : { data: [] };
-      if (attendance && attendance.length > 0) {
-        attendanceEl.innerHTML = attendance.map(a => {
-          const clockIn = a.clock_in ? new Date(a.clock_in).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
-          const clockOut = a.clock_out ? new Date(a.clock_out).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : '';
-          const status = clockOut ? '退勤済' : '出勤中';
-          const statusColor = clockOut ? '#8a8a8a' : '#006B3F';
-          return `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px;">
-            <span>${escapeHtml(a.staff_name)}</span>
-            <span style="color:${statusColor};">${clockIn}${clockOut ? ' - ' + clockOut : ''} <span style="font-size:11px;">${status}</span></span>
-          </div>`;
-        }).join('');
+      const attendMap = {};
+      (dbAttendance || []).forEach(a => { attendMap[a.staff_name] = a; });
+
+      // スタッフごとに表示
+      const members = [];
+      (CONFIG.STAFF || []).forEach(s => {
+        if (s.showTimeline === false) return;
+        if (dow === 0 || dow === 6) return; // 土日
+        const isOff = s.offDays && s.offDays.includes(dow);
+        const dbRecord = attendMap[s.name];
+
+        // 休み連絡チェック（noteに「欠勤」「休み」が含まれる場合）
+        const isAbsent = dbRecord?.note && /欠勤|休み|お休み/.test(dbRecord.note);
+
+        if (isOff && !dbRecord) return; // 定休日で出勤記録もなければ非表示
+
+        const clockIn = dbRecord?.clock_in ? new Date(dbRecord.clock_in).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : null;
+        const clockOut = dbRecord?.clock_out ? new Date(dbRecord.clock_out).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' }) : null;
+
+        let timeText = '';
+        let statusText = '';
+        let statusColor = '#5a6272';
+
+        if (isAbsent || isOff) {
+          timeText = isOff ? '定休日' : '欠勤';
+          statusText = '休み';
+          statusColor = '#8a8a8a';
+        } else if (clockIn) {
+          timeText = clockIn + (clockOut ? ' - ' + clockOut : '');
+          statusText = clockOut ? '退勤済' : '出勤中';
+          statusColor = clockOut ? '#8a8a8a' : '#006B3F';
+        } else {
+          // 予定時間
+          timeText = `${s.start || '?'} - ${s.end || '?'}`;
+          statusText = '予定';
+          statusColor = '#C5A258';
+        }
+
+        members.push({ name: s.name, timeText, statusText, statusColor });
+      });
+
+      if (members.length > 0) {
+        attendanceEl.innerHTML = members.map(m => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;border-bottom:1px solid #f0ede6;">
+            <span>${escapeHtml(m.name.split(/[　 ]/)[0])}</span>
+            <span style="color:${m.statusColor};">${m.timeText} <span style="font-size:11px;opacity:0.8;">${m.statusText}</span></span>
+          </div>
+        `).join('');
       } else {
-        attendanceEl.innerHTML = '<div style="color:#8a8a8a;font-size:13px;">出勤記録なし</div>';
+        attendanceEl.innerHTML = '<div style="color:#8a8a8a;font-size:13px;">今日は休業日です</div>';
       }
-    } catch {
+    } catch (e) {
+      console.error('出勤メンバー表示エラー:', e);
       attendanceEl.innerHTML = '<div style="color:#8a8a8a;font-size:13px;">取得できませんでした</div>';
     }
   }
+
+  // 滞留アラートのタップイベント
+  content.querySelectorAll('.stale-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const mgmt = card.dataset.mgmt;
+      navigate('sales', { mgmtNum: mgmt });
+    });
+  });
 }
 
 // --- 商品ディープリンク (#item/管理番号) ---

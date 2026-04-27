@@ -304,5 +304,16 @@ export const CONFIG = {
 
   CLEANING_EXCLUDED: ['浅野儀頼', '三島圭織'],
 
+  // スタッフ基本情報（勤務時間・休日）
+  // offDays: 0=日,1=月,2=火,3=水,4=木,5=金,6=土
+  STAFF: [
+    { name: '浅野儀頼', role: 'admin', start: '09:00', end: '18:00', breakMin: 60, offDays: [], showTimeline: false },
+    { name: '林和人', role: 'staff', start: '09:00', end: '16:00', breakMin: 60, offDays: [] },
+    { name: '横山優', role: 'staff', start: '10:00', end: '16:00', breakMin: 60, offDays: [3] },
+    { name: '桃井侑菜', role: 'staff', start: '11:00', end: '15:00', breakMin: 0, offDays: [2,4] },
+    { name: '伊藤佐和子', role: 'staff', start: '09:00', end: '15:00', breakMin: 60, offDays: [4] },
+    { name: '奥村亜優李', role: 'staff', start: '10:00', end: '16:00', breakMin: 60, offDays: [3] },
+  ],
+
   APP_VERSION: '2.0.0',
 };
