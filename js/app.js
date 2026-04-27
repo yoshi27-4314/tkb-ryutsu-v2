@@ -349,13 +349,20 @@ async function renderHome() {
       const todayStr = todayJST();
       const dow = today.getDay();
 
-      // DB出退勤データ取得
+      // DB出退勤データ+届出データ取得
       const dbClient = getDB();
       const { data: dbAttendance } = dbClient
         ? await dbClient.from('attendance').select('staff_name, clock_in, clock_out, note').eq('work_date', todayStr).order('clock_in')
         : { data: [] };
       const attendMap = {};
       (dbAttendance || []).forEach(a => { attendMap[a.staff_name] = a; });
+
+      // 欠勤届出を取得
+      const { data: leaveNotices } = dbClient
+        ? await dbClient.from('leave_notices').select('staff_name, type, time_value').eq('notice_date', todayStr)
+        : { data: [] };
+      const leaveMap = {};
+      (leaveNotices || []).forEach(n => { leaveMap[n.staff_name] = n; });
 
       // スタッフごとに表示
       const members = [];
@@ -364,9 +371,13 @@ async function renderHome() {
         if (dow === 0 || dow === 6) return; // 土日
         const isOff = s.offDays && s.offDays.includes(dow);
         const dbRecord = attendMap[s.name];
+        const leaveRecord = leaveMap[s.name];
 
-        // 休み連絡チェック（noteに「欠勤」「休み」が含まれる場合）
-        const isAbsent = dbRecord?.note && /欠勤|休み|お休み/.test(dbRecord.note);
+        // 休み連絡チェック（届出 or noteに「欠勤」「休み」が含まれる場合）
+        const isAbsent = leaveRecord?.type === '欠勤' || leaveRecord?.type === '有給休暇'
+          || (dbRecord?.note && /欠勤|休み|お休み/.test(dbRecord.note));
+        const isLate = leaveRecord?.type === '遅刻';
+        const isEarlyLeave = leaveRecord?.type === '早退';
 
         if (isOff && !dbRecord) return; // 定休日で出勤記録もなければ非表示
 
@@ -377,10 +388,20 @@ async function renderHome() {
         let statusText = '';
         let statusColor = '#5a6272';
 
-        if (isAbsent || isOff) {
-          timeText = isOff ? '定休日' : '欠勤';
+        if (isAbsent) {
+          timeText = leaveRecord?.type || '欠勤';
           statusText = '休み';
-          statusColor = '#8a8a8a';
+          statusColor = '#CE2029';
+        } else if (isOff) {
+          return; // 定休日は非表示
+        } else if (isLate) {
+          timeText = clockIn ? `${clockIn}${clockOut ? ' - ' + clockOut : ''}` : `${leaveRecord.time_value || '?'}〜`;
+          statusText = '遅刻';
+          statusColor = '#FF9500';
+        } else if (isEarlyLeave) {
+          timeText = clockIn ? `${clockIn}${clockOut ? ' - ' + clockOut : ''}` : `〜${leaveRecord.time_value || '?'}`;
+          statusText = '早退';
+          statusColor = '#FF9500';
         } else if (clockIn) {
           timeText = clockIn + (clockOut ? ' - ' + clockOut : '');
           statusText = clockOut ? '退勤済' : '出勤中';
