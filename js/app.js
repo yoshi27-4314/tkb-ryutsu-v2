@@ -256,32 +256,8 @@ async function renderHome() {
         </div>
       </div>
 
-      <!-- 今日の当番 -->
-      ${(() => {
-        const dutyEntries = Object.entries(duty).filter(([,p]) => p);
-        // 掃除ローテーション（日付ベース、定休日・土日スキップ）
-        const allPool = CONFIG.CLEANING_ROTATION || [];
-        const todayPool = allPool.filter(name => {
-          if (dayOfWeek === 0 || dayOfWeek === 6) return false;
-          const s = (CONFIG.STAFF || []).find(st => st.name === name);
-          if (s && s.offDays && s.offDays.includes(dayOfWeek)) return false;
-          return true;
-        });
-        const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
-        const toiletPerson = todayPool.length > 0 ? todayPool[dayOfYear % todayPool.length] : '';
-        const breakRoomPerson = todayPool.length > 1 ? todayPool[(dayOfYear + 1) % todayPool.length] : '';
-        return dutyEntries.length > 0 || toiletPerson ? `
-          <div class="section-title">今日の当番</div>
-          <div class="card">
-            ${dutyEntries.map(([task, person]) => {
-              const names = Array.isArray(person) ? person.join(', ') : person;
-              return `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">${task}</span><span>${names}</span></div>`;
-            }).join('')}
-            ${toiletPerson ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-top:1px solid #f0ede6;margin-top:4px;padding-top:8px;"><span style="color:var(--text-secondary);">🧹 トイレ掃除</span><span>${toiletPerson.split(/[　 ]/)[0]}</span></div>` : ''}
-            ${breakRoomPerson ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">🧹 休憩場所掃除</span><span>${breakRoomPerson.split(/[　 ]/)[0]}</span></div>` : ''}
-          </div>
-        ` : '';
-      })()}
+      <!-- 今日の当番（届出反映後に動的更新） -->
+      <div id="dutySection"></div>
 
       <!-- 確認/相談 待ちリスト（管理者のみ・折り畳み） -->
       ${staff.role === 'admin' && (counts['確認/相談'] || 0) > 0 ? `
@@ -429,6 +405,52 @@ async function renderHome() {
     } catch (e) {
       console.error('出勤メンバー表示エラー:', e);
       attendanceEl.innerHTML = '<div style="color:#8a8a8a;font-size:13px;">取得できませんでした</div>';
+    }
+  }
+
+  // 今日の当番（届出を反映）
+  const dutySection = document.getElementById('dutySection');
+  if (dutySection) {
+    try {
+      const todayStr2 = todayJST();
+      const dbClient2 = getDB();
+      const { data: todayLeaves } = dbClient2
+        ? await dbClient2.from('leave_notices').select('staff_name, type').eq('notice_date', todayStr2).in('type', ['欠勤', '有給休暇'])
+        : { data: [] };
+      const absentNames = new Set((todayLeaves || []).map(l => l.staff_name));
+
+      const dutyEntries = Object.entries(duty).filter(([,p]) => p);
+      // 掃除ローテーション（定休日・欠勤スキップ）
+      const allPool = CONFIG.CLEANING_ROTATION || [];
+      const todayPool = allPool.filter(name => {
+        if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+        const s = (CONFIG.STAFF || []).find(st => st.name === name);
+        if (s && s.offDays && s.offDays.includes(dayOfWeek)) return false;
+        if (absentNames.has(name)) return false;
+        return true;
+      });
+      const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
+      const toiletPerson = todayPool.length > 0 ? todayPool[dayOfYear % todayPool.length] : '';
+      const breakRoomPerson = todayPool.length > 1 ? todayPool[(dayOfYear + 1) % todayPool.length] : '';
+
+      let dutyHtml = '';
+      dutyEntries.forEach(([task, person]) => {
+        const names = Array.isArray(person) ? person.filter(n => !absentNames.has(n)).join(', ') : person;
+        const isAbsent = typeof person === 'string' && absentNames.has(person);
+        if (isAbsent) {
+          dutyHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">${task}</span><span style="color:#CE2029;text-decoration:line-through;">${person.split(/[　 ]/)[0]} (欠勤)</span></div>`;
+        } else if (names) {
+          dutyHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">${task}</span><span>${names}</span></div>`;
+        }
+      });
+      if (toiletPerson) dutyHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-top:1px solid #f0ede6;margin-top:4px;padding-top:8px;"><span style="color:var(--text-secondary);">🧹 トイレ掃除</span><span>${toiletPerson.split(/[　 ]/)[0]}</span></div>`;
+      if (breakRoomPerson) dutyHtml += `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">🧹 休憩場所掃除</span><span>${breakRoomPerson.split(/[　 ]/)[0]}</span></div>`;
+
+      if (dutyHtml) {
+        dutySection.innerHTML = `<div class="section-title">今日の当番</div><div class="card">${dutyHtml}</div>`;
+      }
+    } catch (e) {
+      console.error('当番表示エラー:', e);
     }
   }
 
