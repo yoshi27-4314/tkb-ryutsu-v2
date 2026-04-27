@@ -224,7 +224,7 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #F8F5EE; color: #1C2
       <li><span class="feat-badge">基本</span>確認/相談待ち一覧（浅野さんの判断待ち）</li>
       <li><span class="feat-badge">基本</span>滞留アラート（長期間動いていない商品）</li>
       <li><span class="feat-badge">基本</span>今日の実績（分荷/出品/梱包/出荷）</li>
-      <li><span class="feat-badge">基本</span>在庫ステータス（入荷待ち/出品待ち/出品中/取引中）</li>
+      <li><span class="feat-badge">基本</span>在庫ステータス（撮影待ち/出品待ち/出品中/取引中）</li>
     </ul>
   </div>
 </div>
@@ -415,6 +415,11 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #F8F5EE; color: #1C2
     <div class="change-desc">写真が登録されていない商品は、出品作業画面ではなく「写真を撮影してください」画面が表示されます。先に撮影してから出品してください。</div>
   </div>
 
+  <div class="change-card breaking">
+    <div class="change-title">担当制の廃止</div>
+    <div class="change-desc">曜日ごとの分荷/出品/取引ナビ担当のローテーションを廃止しました。固定担当は桃井（梱包・出荷/書籍販売）と奥村（取引ナビ）のみです。掃除当番は日替わりローテーション（定休日は自動スキップ）。</div>
+  </div>
+
   <h3>新機能</h3>
   <div class="change-card">
     <div class="change-title">📸 売上取込</div>
@@ -427,6 +432,10 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #F8F5EE; color: #1C2
   <div class="change-card">
     <div class="change-title">📌 管理番号スティッキーヘッダー</div>
     <div class="change-desc">出品作業画面で、スクロールしても管理番号・商品名・タイマーが常に表示されます。</div>
+  </div>
+  <div class="change-card">
+    <div class="change-title">👥 今日の出勤メンバー</div>
+    <div class="change-desc">ホーム画面の一番下に表示。デフォルトの予定時間が表示され、実際に出退勤するとリアルタイムで更新されます。定休日のスタッフは自動で非表示。</div>
   </div>
 
   <h3>不具合修正</h3>
@@ -449,6 +458,10 @@ body { font-family: 'Noto Sans JP', sans-serif; background: #F8F5EE; color: #1C2
   <div class="change-card">
     <div class="change-title">AI素材判定の精度向上</div>
     <div class="change-desc">プラスチック製を漆器と判定する等の問題を改善。素材判定ルールを追加しました。</div>
+  </div>
+  <div class="change-card">
+    <div class="change-title">日付のタイムゾーン問題を修正</div>
+    <div class="change-desc">深夜〜早朝の出退勤記録で日付が1日ずれる問題を修正しました。</div>
   </div>
 </div>
 

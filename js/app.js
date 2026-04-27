@@ -259,11 +259,17 @@ async function renderHome() {
       <!-- 今日の当番 -->
       ${(() => {
         const dutyEntries = Object.entries(duty).filter(([,p]) => p);
-        // 掃除ローテーション（日付ベースで決定）
-        const cleaningPool = CONFIG.CLEANING_ROTATION || [];
+        // 掃除ローテーション（日付ベース、定休日・土日スキップ）
+        const allPool = CONFIG.CLEANING_ROTATION || [];
+        const todayPool = allPool.filter(name => {
+          if (dayOfWeek === 0 || dayOfWeek === 6) return false;
+          const s = (CONFIG.STAFF || []).find(st => st.name === name);
+          if (s && s.offDays && s.offDays.includes(dayOfWeek)) return false;
+          return true;
+        });
         const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
-        const toiletPerson = cleaningPool.length > 0 ? cleaningPool[dayOfYear % cleaningPool.length] : '';
-        const breakRoomPerson = cleaningPool.length > 1 ? cleaningPool[(dayOfYear + 1) % cleaningPool.length] : '';
+        const toiletPerson = todayPool.length > 0 ? todayPool[dayOfYear % todayPool.length] : '';
+        const breakRoomPerson = todayPool.length > 1 ? todayPool[(dayOfYear + 1) % todayPool.length] : '';
         return dutyEntries.length > 0 || toiletPerson ? `
           <div class="section-title">今日の当番</div>
           <div class="card">
@@ -271,8 +277,8 @@ async function renderHome() {
               const names = Array.isArray(person) ? person.join(', ') : person;
               return `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">${task}</span><span>${names}</span></div>`;
             }).join('')}
-            ${toiletPerson ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-top:1px solid #f0ede6;margin-top:4px;padding-top:8px;"><span style="color:var(--text-secondary);">🧹 トイレ掃除</span><span>${toiletPerson}</span></div>` : ''}
-            ${breakRoomPerson ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">🧹 休憩場所掃除</span><span>${breakRoomPerson}</span></div>` : ''}
+            ${toiletPerson ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-top:1px solid #f0ede6;margin-top:4px;padding-top:8px;"><span style="color:var(--text-secondary);">🧹 トイレ掃除</span><span>${toiletPerson.split(/[　 ]/)[0]}</span></div>` : ''}
+            ${breakRoomPerson ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">🧹 休憩場所掃除</span><span>${breakRoomPerson.split(/[　 ]/)[0]}</span></div>` : ''}
           </div>
         ` : '';
       })()}
