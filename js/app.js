@@ -165,7 +165,7 @@ async function renderHome() {
   const today = new Date();
   const dayOfWeek = today.getDay();
   const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
-  const duty = CONFIG.DUTY_ROTATION[dayOfWeek] || {};
+  const duty = CONFIG.DUTY_FIXED || {};
 
   // ボトルネック検出
   const bottlenecks = [];
@@ -240,7 +240,7 @@ async function renderHome() {
       <div class="stats-grid">
         <div class="stat-card" onclick="window.__nav('intake')">
           <div class="stat-num" style="color:var(--info);">${(counts['分荷確定'] || 0) + (counts['撮影待ち'] || 0)}</div>
-          <div class="stat-label">入荷待ち</div>
+          <div class="stat-label">撮影待ち</div>
         </div>
         <div class="stat-card" onclick="window.__nav('sales')">
           <div class="stat-num" style="color:var(--warning);">${counts['出品待ち'] || 0}</div>
@@ -257,16 +257,25 @@ async function renderHome() {
       </div>
 
       <!-- 今日の当番 -->
-      ${duty && Object.keys(duty).length > 0 ? `
-        <div class="section-title">今日の当番</div>
-        <div class="card">
-          ${Object.entries(duty).map(([task, person]) => {
-            if (!person) return '';
-            const names = Array.isArray(person) ? person.join(', ') : person;
-            return `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">${task}</span><span>${names}</span></div>`;
-          }).join('')}
-        </div>
-      ` : ''}
+      ${(() => {
+        const dutyEntries = Object.entries(duty).filter(([,p]) => p);
+        // 掃除ローテーション（日付ベースで決定）
+        const cleaningPool = CONFIG.CLEANING_ROTATION || [];
+        const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / 86400000);
+        const toiletPerson = cleaningPool.length > 0 ? cleaningPool[dayOfYear % cleaningPool.length] : '';
+        const breakRoomPerson = cleaningPool.length > 1 ? cleaningPool[(dayOfYear + 1) % cleaningPool.length] : '';
+        return dutyEntries.length > 0 || toiletPerson ? `
+          <div class="section-title">今日の当番</div>
+          <div class="card">
+            ${dutyEntries.map(([task, person]) => {
+              const names = Array.isArray(person) ? person.join(', ') : person;
+              return `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">${task}</span><span>${names}</span></div>`;
+            }).join('')}
+            ${toiletPerson ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-top:1px solid #f0ede6;margin-top:4px;padding-top:8px;"><span style="color:var(--text-secondary);">🧹 トイレ掃除</span><span>${toiletPerson}</span></div>` : ''}
+            ${breakRoomPerson ? `<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px;"><span style="color:var(--text-secondary);">🧹 休憩場所掃除</span><span>${breakRoomPerson}</span></div>` : ''}
+          </div>
+        ` : '';
+      })()}
 
       <!-- 確認/相談 待ちリスト（管理者のみ・折り畳み） -->
       ${staff.role === 'admin' && (counts['確認/相談'] || 0) > 0 ? `
