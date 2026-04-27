@@ -313,6 +313,9 @@ export const CONFIG = {
     { name: '桃井侑菜', role: 'staff', start: '11:00', end: '15:00', breakMin: 0, offDays: [2,4] },
     { name: '伊藤佐和子', role: 'staff', start: '09:00', end: '15:00', breakMin: 60, offDays: [4] },
     { name: '奥村亜優李', role: 'staff', start: '10:00', end: '16:00', breakMin: 60, offDays: [3] },
+    { name: '平野光雄', role: 'staff', start: '09:00', end: '16:00', breakMin: 60, offDays: [3] },
+    { name: '松本豊彦', role: 'staff', start: '09:00', end: '16:00', breakMin: 60, offDays: [] },
+    { name: '北瀬孝', role: 'staff', start: '09:00', end: '16:00', breakMin: 60, offDays: [3] },
   ],
 
   APP_VERSION: '2.0.0',
