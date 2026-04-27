@@ -99,7 +99,9 @@ function getCurrentMonth() {
 }
 
 function getTodayStr() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const jst = new Date(now.getTime() + (9 * 60 - now.getTimezoneOffset()) * 60000);
+  return jst.toISOString().slice(0, 10);
 }
 
 function getDayOfWeek() {

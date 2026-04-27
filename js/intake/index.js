@@ -811,7 +811,7 @@ async function handleConfirm(needsApproval) {
     await db.logWork({
       staff_name: staff.name,
       work_type: '分荷',
-      work_date: new Date().toISOString().slice(0, 10),
+      work_date: new Date(new Date().getTime() + (9*60 - new Date().getTimezoneOffset())*60000).toISOString().slice(0,10),
       mgmt_num: mgmtNum,
       duration_seconds: elapsed,
     });
@@ -913,7 +913,7 @@ function handleConsult() {
       await db.logWork({
         staff_name: staff.name,
         work_type: '分荷',
-        work_date: new Date().toISOString().slice(0, 10),
+        work_date: new Date(new Date().getTime() + (9*60 - new Date().getTimezoneOffset())*60000).toISOString().slice(0,10),
         mgmt_num: mgmtNum,
         duration_seconds: elapsed,
       });

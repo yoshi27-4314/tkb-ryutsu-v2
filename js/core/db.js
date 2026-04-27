@@ -4,6 +4,18 @@
  */
 import { CONFIG } from './config.js';
 
+/** 日本時間で今日の日付文字列を返す（YYYY-MM-DD） */
+export function todayJST() {
+  const now = new Date();
+  const jst = new Date(now.getTime() + (9 * 60 - now.getTimezoneOffset()) * 60000);
+  return jst.toISOString().slice(0, 10);
+}
+
+/** 日本時間でISO文字列を返す */
+export function nowJST() {
+  return new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Tokyo' }).replace(' ', 'T') + '+09:00';
+}
+
 let db = null;
 let realtimeChannel = null;
 let listeners = new Set();
@@ -328,7 +340,7 @@ export async function getStaleItems() {
 // --- 今日の実績 ---
 export async function getTodayStats() {
   if (!db) return { listed: 0, judged: 0, shipped: 0, packed: 0 };
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayJST();
   const { data } = await db.from('work_logs')
     .select('work_type, duration_seconds')
     .eq('work_date', today);

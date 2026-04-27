@@ -962,7 +962,7 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
       staff_name: staff?.name || '',
       work_type: '出品',
       mgmt_num: mgmtNum,
-      work_date: new Date().toISOString().slice(0, 10),
+      work_date: new Date(new Date().getTime() + (9*60 - new Date().getTimezoneOffset())*60000).toISOString().slice(0,10),
       duration_seconds: elapsed,
       detail: `タイトル: ${title.slice(0, 30)}...`,
     });

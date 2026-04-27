@@ -4,7 +4,7 @@
  *   入荷(intake) / 販売(sales) / 取引(trade) / 業務(ops)
  */
 import { CONFIG } from './core/config.js';
-import { initDB, getDB, subscribe, getStatusCounts, getTodayStats, getItems, cleanStaleLocks, getStaleItems } from './core/db.js';
+import { initDB, getDB, subscribe, getStatusCounts, getTodayStats, getItems, cleanStaleLocks, getStaleItems, todayJST } from './core/db.js';
 import { getCurrentStaff, showLoginScreen } from './core/auth.js';
 import { registerRoute, navigate } from './core/router.js';
 import { showToast, showLoading, statusBadge, formatPrice, emptyState, escapeHtml } from './core/ui.js';
@@ -340,7 +340,7 @@ async function renderHome() {
   const attendanceEl = document.getElementById('todayAttendance');
   if (attendanceEl) {
     try {
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = todayJST();
       const dow = today.getDay();
 
       // DB出退勤データ取得
