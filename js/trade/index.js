@@ -1701,24 +1701,78 @@ async function renderSalesImportResult(ocrItems, screenshotBase64) {
       item.newStatus = '落札済み';
     }
 
-    // 商品タイトルでDB検索（部分一致）
+    // 商品タイトルでDB検索（複数戦略で照合）
     if (item.title) {
-      const searchTerms = item.title.slice(0, 20);
-      const filters = { search: searchTerms, limit: 5 };
-      const candidates = await db.getItems(filters);
-      if (candidates.length > 0) {
+      // スタッフマーク・記号を除去してキーワード抽出
+      const cleanTitle = item.title.replace(/[〇◇▽☆◎□♦◆●■★◈△▲▼♢♠♣♥♤♧♡♩♪♫♬]/g, '')
+        .replace(/[｜|／/◇]/g, ' ')
+        .replace(/【[^】]*】/g, ' ')
+        .trim();
+
+      // 戦略1: タイトル先頭で検索
+      const searchTerms = cleanTitle.slice(0, 20);
+      let candidates = await db.getItems({ search: searchTerms, limit: 10 });
+
+      // 戦略2: キーワード分割して主要語で検索
+      if (candidates.length === 0) {
+        const words = cleanTitle.split(/[\s　,、。・]+/).filter(w => w.length >= 2).slice(0, 3);
+        for (const word of words) {
+          candidates = await db.getItems({ search: word, limit: 10 });
+          if (candidates.length > 0) break;
+        }
+      }
+
+      // 戦略3: 出品タイトル（listing_title）でも検索
+      if (candidates.length === 0) {
+        const dbClient = db.getDB();
+        if (dbClient) {
+          const { data } = await dbClient.from('items')
+            .select('*')
+            .ilike('listing_title', `%${cleanTitle.slice(0, 15)}%`)
+            .limit(5);
+          if (data && data.length > 0) candidates = data;
+        }
+      }
+
+      // 複数候補がある場合、価格で絞り込み
+      if (candidates.length > 1 && item.price) {
+        const priceMatch = candidates.find(c =>
+          c.start_price === parseInt(item.price) ||
+          c.target_price === parseInt(item.price) ||
+          c.sold_price === parseInt(item.price)
+        );
+        if (priceMatch) {
+          item.matched = true;
+          item.dbItem = priceMatch;
+        }
+      }
+
+      if (!item.matched && candidates.length > 0) {
         item.matched = true;
         item.dbItem = candidates[0];
       }
     }
 
-    // 商品IDでも検索
+    // 商品IDでも検索（listing_urlに含まれている可能性）
     if (!item.matched && item.productId) {
-      const filters = { search: item.productId, limit: 3 };
-      const candidates = await db.getItems(filters);
-      if (candidates.length > 0) {
-        item.matched = true;
-        item.dbItem = candidates[0];
+      const dbClient = db.getDB();
+      if (dbClient) {
+        const { data } = await dbClient.from('items')
+          .select('*')
+          .ilike('listing_url', `%${item.productId}%`)
+          .limit(3);
+        if (data && data.length > 0) {
+          item.matched = true;
+          item.dbItem = data[0];
+        }
+      }
+      // 通常検索もフォールバック
+      if (!item.matched) {
+        const candidates = await db.getItems({ search: item.productId, limit: 3 });
+        if (candidates.length > 0) {
+          item.matched = true;
+          item.dbItem = candidates[0];
+        }
       }
     }
   }
