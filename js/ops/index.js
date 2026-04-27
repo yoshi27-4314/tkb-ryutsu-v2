@@ -1410,9 +1410,9 @@ function renderLeaveNotice(container, staff) {
     const targetStaff = container.querySelector('#leaveStaff')?.value || staff.name;
     const notice = {
       staff_name: targetStaff,
-      notice_type: type,
+      type: type,
       notice_date: date,
-      notice_time: time || null,
+      time_value: time || null,
       reason,
     };
 
