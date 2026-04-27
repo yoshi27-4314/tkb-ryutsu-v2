@@ -157,10 +157,12 @@ export async function cleanStaleLocks() {
 }
 
 // --- 管理番号の採番 ---
-export async function generateMgmtNum() {
+export async function generateMgmtNum(sourcePrefix = '') {
   if (!db) return null;
   const now = new Date();
-  const prefix = String(now.getFullYear()).slice(2) + String(now.getMonth() + 1).padStart(2, '0');
+  const jst = new Date(now.getTime() + (9 * 60 - now.getTimezoneOffset()) * 60000);
+  const datePart = String(jst.getFullYear()).slice(2) + String(jst.getMonth() + 1).padStart(2, '0');
+  const prefix = sourcePrefix ? sourcePrefix + datePart : datePart;
 
   // アトミックにインクリメント
   const { data, error } = await db.rpc('next_mgmt_num', { p_prefix: prefix });

@@ -10,11 +10,17 @@ import { showToast, showLoading, capturePhoto, fileToBase64, resizeImage, escape
 // ── 定数 ──────────────────────────────────────────
 
 const SOURCE_TYPES = [
-  { id: 'jisha',    label: '自社仕入',       category: 'jisha' },
-  { id: 'bigsport', label: 'ビッグスポーツ', category: 'itaku' },
-  { id: 'watanabe', label: '渡辺質店',       category: 'itaku' },
-  { id: 'shimachiyo', label: 'シマチヨ',     category: 'kojin' },
+  { id: 'jisha',    label: '自社仕入',       category: 'jisha', mgmtPrefix: '' },
+  { id: 'bigsport', label: 'ビッグスポーツ', category: 'itaku', mgmtPrefix: 'B' },
+  { id: 'watanabe', label: '渡辺質店',       category: 'itaku', mgmtPrefix: 'W' },
+  { id: 'shimachiyo', label: 'シマチヨ',     category: 'kojin', mgmtPrefix: 'S' },
 ];
+
+
+function getMgmtPrefix() {
+  const src = SOURCE_TYPES.find(s => s.id === state.sourceType);
+  return src?.mgmtPrefix || '';
+}
 
 // 発送コスト計算
 function calcShippingCost(shippingSize) {
@@ -759,7 +765,7 @@ async function handleConfirm(needsApproval) {
 
   try {
     // 管理番号を採番
-    const mgmtNum = await db.generateMgmtNum();
+    const mgmtNum = await db.generateMgmtNum(getMgmtPrefix());
     if (!mgmtNum) throw new Error('管理番号の採番に失敗しました');
     state.mgmtNum = mgmtNum;
 
@@ -1765,7 +1771,7 @@ async function handleBulkRegister() {
 
   for (const item of items) {
     try {
-      const mgmtNum = await db.generateMgmtNum();
+      const mgmtNum = await db.generateMgmtNum('W');
       await db.createItem({
         mgmt_num: mgmtNum,
         product_name: item.name,

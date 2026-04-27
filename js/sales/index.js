@@ -415,12 +415,26 @@ async function openListingWork(container, mgmtNum) {
       </div>
 
       <div style="padding:12px 12px 0;">
-      <!-- 商品情報ヘッダ -->
+      <!-- 商品情報（編集可能） -->
       <div style="background:#ffffff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #dde0e6;">
-        <div style="font-size:12px;color:#5a6272;">
+        ${item.partner_item_number ? `<div style="font-size:12px;color:#C5A258;font-weight:bold;margin-bottom:4px;">委託番号: ${escapeHtml(item.partner_item_number)}</div>` : ''}
+        <div style="font-size:12px;color:#5a6272;margin-bottom:6px;">
           ${escapeHtml(channel?.name || item.channel_name || '未設定')} | 状態: ${escapeHtml(item.condition_rank || '—')}
-          ${item.model_number ? ` | 型番: ${escapeHtml(item.model_number)}` : ''}
+          | サイズ: ${escapeHtml(item.product_size || item.shipping_size ? item.shipping_size + 'サイズ' : '—')}
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+          <div>
+            <label style="font-size:10px;color:#8a8a8a;">商品名</label>
+            <input id="editProductName" type="text" value="${escapeHtml(item.product_name || '')}"
+              style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:6px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:12px;outline:none;">
+          </div>
+          <div>
+            <label style="font-size:10px;color:#8a8a8a;">型番</label>
+            <input id="editModelNumber" type="text" value="${escapeHtml(item.model_number || '')}"
+              style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:6px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:12px;outline:none;">
+          </div>
+        </div>
+        ${item.listing_memo ? `<div style="font-size:11px;color:#C5A258;margin-top:4px;">📝 ${escapeHtml(item.listing_memo)}</div>` : ''}
         ${item.memo ? `<div style="font-size:11px;color:#8a8a8a;margin-top:4px;line-height:1.4;">${escapeHtml(item.memo).slice(0, 100)}</div>` : ''}
       </div>
 
@@ -694,10 +708,10 @@ async function openListingWork(container, mgmtNum) {
     completeListing(container, item.mgmt_num);
   });
 
-  // 途中保存
+  // 途中保存（ロック維持 + データ保存）
   container.querySelector('#saveProgressBtn').addEventListener('click', async () => {
     await saveProgress(container, item.mgmt_num);
-    showToast('保存しました');
+    showToast('保存しました（ロック中 — 他の人は編集できません）');
   });
 
   // 作業キャンセル
@@ -777,12 +791,13 @@ async function generateAIListing(container, item, type) {
         context: {
           task: 'listing',
           generateType: type,
-          productName: item.product_name || '',
+          productName: container.querySelector('#editProductName')?.value || item.product_name || '',
           maker: item.maker || '',
-          model: item.model || '',
+          model: container.querySelector('#editModelNumber')?.value || item.model_number || '',
           condition: item.condition || '',
           conditionRank: item.condition_rank || '',
           channel: item.channel_name || '',
+          partnerItemNumber: item.partner_item_number || '',
           operationStatus: item.operation_status || '',
           operationNote: item.operation_note || '',
           category: item.category || '',
@@ -990,7 +1005,12 @@ async function saveProgress(container, mgmtNum) {
   const targetPriceInput = container.querySelector('#targetPrice');
   const channelSelect = container.querySelector('#channelSelect');
 
+  const editName = container.querySelector('#editProductName');
+  const editModel = container.querySelector('#editModelNumber');
+
   const updates = {};
+  if (editName?.value) updates.product_name = editName.value.trim();
+  if (editModel?.value) updates.model_number = editModel.value.trim();
   if (titleInput?.value) updates.listing_title = titleInput.value.trim();
   if (descInput?.value) updates.listing_description = descInput.value.trim();
   if (startPriceInput?.value) updates.start_price = parseInt(startPriceInput.value) || null;
