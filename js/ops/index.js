@@ -1350,8 +1350,17 @@ function renderLeaveNotice(container, staff) {
     { value: 'その他', label: 'その他' },
   ];
 
+  // 管理者は代筆可能（スタッフ選択）
+  const staffOptions = (CONFIG.STAFF || []).filter(s => s.showTimeline !== false).map(s => ({ value: s.name, label: s.name }));
+  const isAdmin = staff.role === 'admin';
+
   container.innerHTML = card(`
     ${sectionTitle('欠勤・遅刻・早退 届出')}
+
+    ${isAdmin ? `
+      ${label('対象スタッフ')}
+      ${selectBox('leaveStaff', staffOptions, staff.name)}
+    ` : ''}
 
     ${label('届出種類')}
     ${selectBox('leaveType', types, '欠勤')}
@@ -1398,8 +1407,9 @@ function renderLeaveNotice(container, staff) {
       return;
     }
 
+    const targetStaff = container.querySelector('#leaveStaff')?.value || staff.name;
     const notice = {
-      staff_name: staff.name,
+      staff_name: targetStaff,
       notice_type: type,
       notice_date: date,
       notice_time: time || null,
