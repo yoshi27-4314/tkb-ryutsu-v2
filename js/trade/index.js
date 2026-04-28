@@ -1652,19 +1652,43 @@ async function handleSalesImport() {
       }),
     });
 
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => '');
+      console.error('売上取込 HTTP error:', res.status, errBody);
+      throw new Error(`HTTP ${res.status}`);
+    }
     const result = await res.json();
-    const items = result.success
-      ? (Array.isArray(result.judgment) ? result.judgment : [result.judgment])
-      : [];
 
-    if (items.length === 0) {
-      showToast('商品情報を読み取れませんでした');
+    // エラーレスポンスチェック
+    if (result.error) {
+      console.error('売上取込 API error:', result.error, result.detail);
+      showToast(`読み取りエラー: ${result.error.slice(0, 50)}`);
       renderList();
       return;
     }
 
-    renderSalesImportResult(items, resized);
+    // rawレスポンス（JSON抽出失敗）の場合
+    if (!result.judgment && result.raw) {
+      console.error('売上取込: JSON抽出失敗, raw:', result.raw?.slice(0, 200));
+      showToast('スクショからデータを抽出できませんでした。別の画面を試してください');
+      renderList();
+      return;
+    }
+
+    const items = result.success && result.judgment
+      ? (Array.isArray(result.judgment) ? result.judgment : [result.judgment])
+      : [];
+
+    // undefinedやnullを除外
+    const validItems = items.filter(i => i && i.title);
+
+    if (validItems.length === 0) {
+      showToast('商品情報を読み取れませんでした。画面全体が写っているか確認してください');
+      renderList();
+      return;
+    }
+
+    renderSalesImportResult(validItems, resized);
   } catch (err) {
     console.error('売上取込エラー:', err);
     showToast('スクショの解析に失敗しました');
@@ -1688,11 +1712,15 @@ async function renderSalesImportResult(ocrItems, screenshotBase64) {
     '取引メッセージがあります': null, // 個別判断
   };
 
+  // 既に落札済み以降のステータス（重複チェック用）
+  const ALREADY_SOLD_STATUSES = ['落札済み', '入金待ち', '連絡待ち', '入金確認済み', '発送済み', '受取確認', '完了'];
+
   // DBから商品名で照合
   for (const item of ocrItems) {
     item.matched = false;
     item.dbItem = null;
     item.newStatus = null;
+    item.alreadyImported = false; // 重複フラグ
 
     // ヤフオクステータスからアプリステータスを決定
     if (item.yahooStatus) {
@@ -1709,47 +1737,72 @@ async function renderSalesImportResult(ocrItems, screenshotBase64) {
         .replace(/【[^】]*】/g, ' ')
         .trim();
 
-      // 戦略1: タイトル先頭で検索
-      const searchTerms = cleanTitle.slice(0, 20);
-      let candidates = await db.getItems({ search: searchTerms, limit: 10 });
-
-      // 戦略2: キーワード分割して主要語で検索
-      if (candidates.length === 0) {
-        const words = cleanTitle.split(/[\s　,、。・]+/).filter(w => w.length >= 2).slice(0, 3);
-        for (const word of words) {
-          candidates = await db.getItems({ search: word, limit: 10 });
-          if (candidates.length > 0) break;
-        }
-      }
-
-      // 戦略3: 出品タイトル（listing_title）でも検索
-      if (candidates.length === 0) {
-        const dbClient = db.getDB();
-        if (dbClient) {
-          const { data } = await dbClient.from('items')
-            .select('*')
-            .ilike('listing_title', `%${cleanTitle.slice(0, 15)}%`)
-            .limit(5);
-          if (data && data.length > 0) candidates = data;
-        }
-      }
-
-      // 複数候補がある場合、価格で絞り込み
-      if (candidates.length > 1 && item.price) {
-        const priceMatch = candidates.find(c =>
-          c.start_price === parseInt(item.price) ||
-          c.target_price === parseInt(item.price) ||
-          c.sold_price === parseInt(item.price)
-        );
-        if (priceMatch) {
+      // 戦略1: listing_title完全一致（最も確実）
+      const dbClient = db.getDB();
+      if (dbClient) {
+        const { data } = await dbClient.from('items')
+          .select('*')
+          .eq('listing_title', item.title)
+          .limit(1);
+        if (data && data.length > 0) {
           item.matched = true;
-          item.dbItem = priceMatch;
+          item.dbItem = data[0];
         }
       }
 
-      if (!item.matched && candidates.length > 0) {
-        item.matched = true;
-        item.dbItem = candidates[0];
+      // 戦略2: listing_title部分一致
+      if (!item.matched && dbClient) {
+        const { data } = await dbClient.from('items')
+          .select('*')
+          .ilike('listing_title', `%${cleanTitle.slice(0, 20)}%`)
+          .limit(10);
+        if (data && data.length > 0) {
+          // 価格で絞り込み
+          if (data.length > 1 && item.price) {
+            const priceMatch = data.find(c =>
+              c.start_price === parseInt(item.price) ||
+              c.sold_price === parseInt(item.price)
+            );
+            if (priceMatch) {
+              item.matched = true;
+              item.dbItem = priceMatch;
+            }
+          }
+          if (!item.matched) {
+            item.matched = true;
+            item.dbItem = data[0];
+          }
+        }
+      }
+
+      // 戦略3: 商品名で全文検索
+      if (!item.matched) {
+        const searchTerms = cleanTitle.slice(0, 20);
+        let candidates = await db.getItems({ search: searchTerms, limit: 10 });
+
+        if (candidates.length === 0) {
+          const words = cleanTitle.split(/[\s　,、。・]+/).filter(w => w.length >= 2).slice(0, 3);
+          for (const word of words) {
+            candidates = await db.getItems({ search: word, limit: 10 });
+            if (candidates.length > 0) break;
+          }
+        }
+
+        if (candidates.length > 1 && item.price) {
+          const priceMatch = candidates.find(c =>
+            c.start_price === parseInt(item.price) ||
+            c.sold_price === parseInt(item.price)
+          );
+          if (priceMatch) {
+            item.matched = true;
+            item.dbItem = priceMatch;
+          }
+        }
+
+        if (!item.matched && candidates.length > 0) {
+          item.matched = true;
+          item.dbItem = candidates[0];
+        }
       }
     }
 
@@ -1766,7 +1819,6 @@ async function renderSalesImportResult(ocrItems, screenshotBase64) {
           item.dbItem = data[0];
         }
       }
-      // 通常検索もフォールバック
       if (!item.matched) {
         const candidates = await db.getItems({ search: item.productId, limit: 3 });
         if (candidates.length > 0) {
@@ -1775,9 +1827,17 @@ async function renderSalesImportResult(ocrItems, screenshotBase64) {
         }
       }
     }
+
+    // 重複チェック: 既に落札済み以降のステータスなら取込済み
+    if (item.matched && item.dbItem) {
+      if (ALREADY_SOLD_STATUSES.includes(item.dbItem.status)) {
+        item.alreadyImported = true;
+      }
+    }
   }
 
-  const matchedItems = ocrItems.filter(i => i.matched);
+  const matchedItems = ocrItems.filter(i => i.matched && !i.alreadyImported);
+  const alreadyItems = ocrItems.filter(i => i.matched && i.alreadyImported);
   const unmatchedItems = ocrItems.filter(i => !i.matched);
 
   _container.innerHTML = `
@@ -1798,8 +1858,9 @@ async function renderSalesImportResult(ocrItems, screenshotBase64) {
           <span style="color:#5a6272;font-size:13px;">読取結果</span>
           <span style="color:#C5A258;font-size:18px;font-weight:bold;">${ocrItems.length}件</span>
         </div>
-        <div style="display:flex;gap:16px;margin-top:6px;font-size:12px;">
-          <span style="color:#006B3F;">✅ DB一致: ${matchedItems.length}件</span>
+        <div style="display:flex;gap:12px;margin-top:6px;font-size:12px;flex-wrap:wrap;">
+          <span style="color:#006B3F;">✅ 新規: ${matchedItems.length}件</span>
+          ${alreadyItems.length > 0 ? `<span style="color:#8a8a8a;">🔄 取込済み: ${alreadyItems.length}件</span>` : ''}
           <span style="color:#CE2029;">❌ 不一致: ${unmatchedItems.length}件</span>
         </div>
       </div>
@@ -1825,15 +1886,38 @@ async function renderSalesImportResult(ocrItems, screenshotBase64) {
         `).join('')}
       ` : ''}
 
+      <!-- 取込済み（重複）リスト -->
+      ${alreadyItems.length > 0 ? `
+        <details style="margin-top:12px;margin-bottom:8px;">
+          <summary style="color:#8a8a8a;font-size:13px;cursor:pointer;">🔄 取込済み（${alreadyItems.length}件）— スキップします</summary>
+          <div style="margin-top:6px;">
+          ${alreadyItems.map(item => `
+            <div style="background:#f0f0f0;border-radius:10px;padding:10px;margin-bottom:6px;border:1px solid #dde0e6;opacity:0.7;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+                <span style="color:#8a8a8a;font-size:11px;">${escapeHtml(item.dbItem.mgmt_num)}</span>
+                ${statusBadge(item.dbItem.status)}
+              </div>
+              <div style="font-size:12px;color:#5a6272;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.dbItem.product_name || item.title)}</div>
+              ${item.price ? `<div style="font-size:11px;color:#8a8a8a;">¥${Number(item.price).toLocaleString()}</div>` : ''}
+            </div>
+          `).join('')}
+          </div>
+        </details>
+      ` : ''}
+
       <!-- 不一致リスト -->
       ${unmatchedItems.length > 0 ? `
-        <h3 style="color:#5a6272;font-size:13px;margin-top:16px;margin-bottom:8px;">DBに見つからなかった商品</h3>
-        ${unmatchedItems.map(item => `
-          <div style="background:#f8f5ee;border-radius:10px;padding:10px;margin-bottom:6px;border:1px solid #e8e5dd;">
-            <div style="font-size:12px;color:#5a6272;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.title || '(読取不可)')}</div>
-            ${item.price ? `<div style="font-size:12px;color:#5a6272;">¥${Number(item.price).toLocaleString()}</div>` : ''}
+        <details style="margin-top:8px;margin-bottom:8px;" ${matchedItems.length === 0 ? 'open' : ''}>
+          <summary style="color:#CE2029;font-size:13px;cursor:pointer;">❌ DBに見つからなかった商品（${unmatchedItems.length}件）</summary>
+          <div style="margin-top:6px;">
+          ${unmatchedItems.map(item => `
+            <div style="background:#f8f5ee;border-radius:10px;padding:10px;margin-bottom:6px;border:1px solid #e8e5dd;">
+              <div style="font-size:12px;color:#5a6272;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(item.title || '(読取不可)')}</div>
+              ${item.price ? `<div style="font-size:12px;color:#5a6272;">¥${Number(item.price).toLocaleString()}</div>` : ''}
+            </div>
+          `).join('')}
           </div>
-        `).join('')}
+        </details>
       ` : ''}
 
       <!-- 一括更新ボタン -->
