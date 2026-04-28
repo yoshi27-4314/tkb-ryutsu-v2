@@ -995,7 +995,20 @@ async function completeListing(container, mgmtNum) {
     return;
   }
 
-  doCompleteListing(container, mgmtNum, { title, description, startPrice, targetPrice, channelName });
+  // 説明文の先頭に管理番号ヘッダーがなければ自動付与
+  let finalDescription = description;
+  if (description && !description.startsWith(mgmtNum)) {
+    const editedShippingSize = parseInt(container.querySelector('#editShippingSize')?.value) || 60;
+    const editedMarketDemand = parseInt(container.querySelector('#editMarketDemand')?.value) || 2;
+    const sizeCode = editedShippingSize >= 170 ? 'YR' : 'S' + editedShippingSize;
+    let priceCode = '';
+    if (targetPrice >= 10000) priceCode = Math.round(targetPrice / 10000) + 'M';
+    else if (targetPrice > 0) priceCode = Math.round(targetPrice / 100) + 'H';
+    const itemHeader = `${mgmtNum}/${sizeCode}/${priceCode || '-'}/${editedMarketDemand}`;
+    finalDescription = itemHeader + '\n\n' + description;
+  }
+
+  doCompleteListing(container, mgmtNum, { title, description: finalDescription, startPrice, targetPrice, channelName });
 }
 
 async function doCompleteListing(container, mgmtNum, { title, description, startPrice, targetPrice, channelName }) {
