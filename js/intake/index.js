@@ -1011,8 +1011,16 @@ function renderPhotoStep() {
   containerRef.querySelectorAll('.photo-slot').forEach(slot => {
     slot.addEventListener('click', async () => {
       const key = slot.dataset.key;
+
+      // 撮影済みの場合はプレビュー表示（拡大・回転・撮り直し）
+      if (state.photos[key]) {
+        showPhotoPreview(key);
+        return;
+      }
+
+      // 未撮影の場合はカメラ起動
       try {
-        const file = await capturePhoto();
+        const file = await capturePhoto(true);
         if (!file) return;
         showToast('処理中...');
         const base64 = await fileToBase64(file);
@@ -2164,6 +2172,84 @@ function renderErrorScreen(title, detail, buttons) {
 }
 
 // ── ユーティリティ ───────────────────────────────
+
+// 写真プレビュー（拡大・回転・撮り直し）
+function showPhotoPreview(key) {
+  const slotInfo = PHOTO_SLOTS.find(s => s.key === key);
+  let rotation = 0;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:10000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;';
+
+  function renderPreview() {
+    overlay.innerHTML = `
+      <div style="color:#fff;font-size:14px;margin-bottom:12px;">${escapeHtml(slotInfo?.label || key)}</div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;max-height:70vh;overflow:hidden;">
+        <img src="${state.photos[key]}" style="max-width:100%;max-height:100%;object-fit:contain;transform:rotate(${rotation}deg);transition:transform 0.3s;">
+      </div>
+      <div style="display:flex;gap:12px;margin-top:16px;">
+        <button id="ppRotate" style="padding:12px 20px;border-radius:10px;border:none;background:#C5A258;color:#000;font-size:14px;cursor:pointer;">🔄 回転</button>
+        <button id="ppRetake" style="padding:12px 20px;border-radius:10px;border:none;background:#ffffff;color:#1C2541;font-size:14px;cursor:pointer;">📷 撮り直し</button>
+        <button id="ppDelete" style="padding:12px 20px;border-radius:10px;border:none;background:#CE2029;color:#fff;font-size:14px;cursor:pointer;">🗑 削除</button>
+      </div>
+      <button id="ppClose" style="margin-top:12px;padding:10px 30px;border-radius:10px;border:1px solid #666;background:transparent;color:#fff;font-size:14px;cursor:pointer;">閉じる</button>
+    `;
+    overlay.querySelector('#ppClose').addEventListener('click', () => overlay.remove());
+    overlay.querySelector('#ppRotate').addEventListener('click', () => {
+      rotation = (rotation + 90) % 360;
+      if (rotation !== 0) {
+        // 回転をcanvasで適用して保存
+        applyRotation(state.photos[key], rotation).then(rotated => {
+          state.photos[key] = rotated;
+          rotation = 0;
+          renderPreview();
+          showToast('回転しました');
+        });
+      }
+    });
+    overlay.querySelector('#ppRetake').addEventListener('click', async () => {
+      overlay.remove();
+      try {
+        const file = await capturePhoto(true);
+        if (!file) return;
+        showToast('処理中...');
+        const base64 = await fileToBase64(file);
+        state.photos[key] = await resizeImage(base64, 1600);
+        const idx = PHOTO_SLOTS.findIndex(s => s.key === key) + 1;
+        uploadToDrive(state.photos[key], state.mgmtNum, idx).catch(() => {});
+        render();
+      } catch (e) {
+        showToast('撮影に失敗しました');
+      }
+    });
+    overlay.querySelector('#ppDelete').addEventListener('click', () => {
+      delete state.photos[key];
+      overlay.remove();
+      render();
+      showToast('写真を削除しました');
+    });
+  }
+  renderPreview();
+  document.body.appendChild(overlay);
+}
+
+// 画像を回転（canvas使用）
+function applyRotation(base64, degrees) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const swap = degrees === 90 || degrees === 270;
+      canvas.width = swap ? img.height : img.width;
+      canvas.height = swap ? img.width : img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(degrees * Math.PI / 180);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = base64;
+  });
+}
 
 function addTouchFeedback(el) {
   if (!el) return;

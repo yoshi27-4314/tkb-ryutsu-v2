@@ -52,8 +52,9 @@ export function renderSales(container, params = {}) {
     }
   });
 
-  // 古いロック掃除
+  // 古いロック掃除 + 出品作業中で放置された商品を出品待ちに戻す
   db.cleanStaleLocks();
+  cleanStaleListingWork();
 
   // パラメータで作業画面を直接開く場合
   if (params.mgmtNum) {
@@ -67,8 +68,8 @@ export function renderSales(container, params = {}) {
     return;
   }
 
-  // デフォルト: 最優先商品を即表示（フローモード）
-  openNextItem(container);
+  // デフォルト: 一覧表示（フローモードはボタンから開始）
+  renderListView(container);
 }
 
 // ============================================================
@@ -434,6 +435,33 @@ async function openListingWork(container, mgmtNum) {
               style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:6px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:12px;outline:none;">
           </div>
         </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px;">
+          <div>
+            <label style="font-size:10px;color:#8a8a8a;">発送サイズ</label>
+            <select id="editShippingSize"
+              style="width:100%;box-sizing:border-box;padding:6px 4px;border-radius:6px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:12px;outline:none;">
+              <option value="">未設定</option>
+              ${[60,80,100,140,160,170,180,200,220,240,260].map(s => `<option value="${s}" ${item.shipping_size == s ? 'selected' : ''}>${s}サイズ</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:10px;color:#8a8a8a;">状態ランク</label>
+            <select id="editConditionRank"
+              style="width:100%;box-sizing:border-box;padding:6px 4px;border-radius:6px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:12px;outline:none;">
+              <option value="">未設定</option>
+              ${Object.entries(CONFIG.CONDITIONS).map(([k,v]) => `<option value="${k}" ${item.condition_rank === k ? 'selected' : ''}>${k}: ${v}</option>`).join('')}
+            </select>
+          </div>
+          <div>
+            <label style="font-size:10px;color:#8a8a8a;">市場需要</label>
+            <select id="editMarketDemand"
+              style="width:100%;box-sizing:border-box;padding:6px 4px;border-radius:6px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:12px;outline:none;">
+              <option value="1" ${item.market_demand == 1 ? 'selected' : ''}>1:買い手有利</option>
+              <option value="2" ${item.market_demand == 2 || !item.market_demand ? 'selected' : ''}>2:拮抗</option>
+              <option value="3" ${item.market_demand == 3 ? 'selected' : ''}>3:売り手有利</option>
+            </select>
+          </div>
+        </div>
         ${item.listing_memo ? `<div style="font-size:11px;color:#C5A258;margin-top:4px;">📝 ${escapeHtml(item.listing_memo)}</div>` : ''}
         ${item.memo ? `<div style="font-size:11px;color:#8a8a8a;margin-top:4px;line-height:1.4;">${escapeHtml(item.memo).slice(0, 100)}</div>` : ''}
       </div>
@@ -636,6 +664,14 @@ async function openListingWork(container, mgmtNum) {
           }),
         });
         if (resp.ok) {
+          const driveResult = await resp.json().catch(() => null);
+          // Drive URLが返ってきたらDBのphoto_urlsに追加
+          if (driveResult?.url) {
+            const currentItem = await db.getItem(item.mgmt_num);
+            const currentPhotos = currentItem?.photo_urls || [];
+            currentPhotos.push(driveResult.url);
+            await db.updateItem(item.mgmt_num, { photo_urls: currentPhotos });
+          }
           showToast('写真を追加しました（Drive保存済み）');
         } else {
           showToast('写真を追加しました（ローカルのみ）');
@@ -795,12 +831,16 @@ async function generateAIListing(container, item, type) {
           maker: item.maker || '',
           model: container.querySelector('#editModelNumber')?.value || item.model_number || '',
           condition: item.condition || '',
-          conditionRank: item.condition_rank || '',
+          conditionRank: container.querySelector('#editConditionRank')?.value || item.condition_rank || '',
           channel: item.channel_name || '',
           partnerItemNumber: item.partner_item_number || '',
           operationStatus: item.operation_status || '',
           operationNote: item.operation_note || '',
           category: item.category || '',
+          mgmtNum: item.mgmt_num || '',
+          shippingSize: parseInt(container.querySelector('#editShippingSize')?.value) || item.shipping_size || null,
+          targetPrice: parseInt(container.querySelector('#targetPrice')?.value) || item.target_price || null,
+          marketDemand: parseInt(container.querySelector('#editMarketDemand')?.value) || item.market_demand || 2,
         },
       }),
     });
@@ -834,12 +874,21 @@ async function generateAIListing(container, item, type) {
 
     if (type === 'description' && data.description) {
       const descInput = container.querySelector('#listingDesc');
+      // 画面上の最新値を使用
+      const editedShippingSize = parseInt(container.querySelector('#editShippingSize')?.value) || item.shipping_size || 60;
+      const editedTargetPrice = parseInt(container.querySelector('#targetPrice')?.value) || item.target_price || 0;
+      const editedMarketDemand = parseInt(container.querySelector('#editMarketDemand')?.value) || item.market_demand || 2;
       // テンプレート自動挿入（状態・発送・取引詳細）
-      const shippingSize = item.shipping_size || 60;
-      const shippingTemplate = shippingSize >= 170
+      const shippingTemplate = editedShippingSize >= 170
         ? CONFIG.LISTING_TEMPLATES.shippingArt('C', 1)
-        : CONFIG.LISTING_TEMPLATES.shippingSagawa(shippingSize);
-      const fullDesc = '【商品説明】\n' + data.description
+        : CONFIG.LISTING_TEMPLATES.shippingSagawa(editedShippingSize);
+      // 管理番号ヘッダー: 管理番号/S発送サイズ/出品回数/需要レベル
+      const sizeCode = editedShippingSize >= 170 ? 'YR' : 'S' + editedShippingSize;
+      let priceCode = '';
+      if (editedTargetPrice >= 10000) priceCode = Math.round(editedTargetPrice / 10000) + 'M';
+      else if (editedTargetPrice > 0) priceCode = Math.round(editedTargetPrice / 100) + 'H';
+      const itemHeader = `${item.mgmt_num}/${sizeCode}/${priceCode || '-'}/${editedMarketDemand}`;
+      const fullDesc = itemHeader + '\n\n【商品説明】\n' + data.description
         + '\n\n' + CONFIG.LISTING_TEMPLATES.conditionNotes
         + '\n\n' + shippingTemplate
         + '\n\n' + CONFIG.LISTING_TEMPLATES.tradingNotes;
@@ -852,12 +901,18 @@ async function generateAIListing(container, item, type) {
     if (type === 'title' && data.description && !generatedDesc) {
       const descInput = container.querySelector('#listingDesc');
       if (descInput && !descInput.value) {
-        // テンプレート自動挿入
-        const shippingSize = item.shipping_size || 60;
-        const shippingTemplate = shippingSize >= 170
+        const editedShippingSize = parseInt(container.querySelector('#editShippingSize')?.value) || item.shipping_size || 60;
+        const editedTargetPrice = parseInt(container.querySelector('#targetPrice')?.value) || item.target_price || 0;
+        const editedMarketDemand = parseInt(container.querySelector('#editMarketDemand')?.value) || item.market_demand || 2;
+        const shippingTemplate = editedShippingSize >= 170
           ? CONFIG.LISTING_TEMPLATES.shippingArt('C', 1)
-          : CONFIG.LISTING_TEMPLATES.shippingSagawa(shippingSize);
-        const fullDesc = '【商品説明】\n' + data.description
+          : CONFIG.LISTING_TEMPLATES.shippingSagawa(editedShippingSize);
+        const sizeCode = editedShippingSize >= 170 ? 'YR' : 'S' + editedShippingSize;
+        let priceCode = '';
+        if (editedTargetPrice >= 10000) priceCode = Math.round(editedTargetPrice / 10000) + 'M';
+        else if (editedTargetPrice > 0) priceCode = Math.round(editedTargetPrice / 100) + 'H';
+        const itemHeader = `${item.mgmt_num}/${sizeCode}/${priceCode || '-'}/${editedMarketDemand}`;
+        const fullDesc = itemHeader + '\n\n【商品説明】\n' + data.description
           + '\n\n' + CONFIG.LISTING_TEMPLATES.conditionNotes
           + '\n\n' + shippingTemplate
           + '\n\n' + CONFIG.LISTING_TEMPLATES.tradingNotes;
@@ -969,7 +1024,13 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
     }
 
     // ステータス更新 + ロック解除
-    await db.updateItemStatus(mgmtNum, CONFIG.STATUS.LISTING, staff?.name || '', updates);
+    const result = await db.updateItemStatus(mgmtNum, CONFIG.STATUS.LISTING, staff?.name || '', updates);
+    if (!result) {
+      console.error('出品完了: ステータス更新失敗', mgmtNum);
+      showToast('ステータスの更新に失敗しました。もう一度試してください');
+      openListingWork(container, mgmtNum);
+      return;
+    }
     await db.unlockItem(mgmtNum);
 
     // 作業ログ記録
@@ -983,13 +1044,16 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
     });
 
     workingItem = null;
-    showToast('出品完了しました');
-    // フローモードなら次の商品を自動表示
-    openNextItem(container);
+    sessionPhotos = [];
+    showToast('出品完了しました！');
+
+    // 完了後は一覧に戻る
+    currentTab = 'list_wait';
+    renderListView(container);
 
   } catch (err) {
     console.error('出品完了エラー:', err);
-    showToast('出品登録に失敗しました');
+    showToast('出品登録に失敗しました: ' + (err.message || ''));
     // 画面を復元
     openListingWork(container, mgmtNum);
   }
@@ -1007,10 +1071,16 @@ async function saveProgress(container, mgmtNum) {
 
   const editName = container.querySelector('#editProductName');
   const editModel = container.querySelector('#editModelNumber');
+  const editShippingSize = container.querySelector('#editShippingSize');
+  const editConditionRank = container.querySelector('#editConditionRank');
+  const editMarketDemand = container.querySelector('#editMarketDemand');
 
   const updates = {};
   if (editName?.value) updates.product_name = editName.value.trim();
   if (editModel?.value) updates.model_number = editModel.value.trim();
+  if (editShippingSize?.value) updates.shipping_size = parseInt(editShippingSize.value) || null;
+  if (editConditionRank?.value) updates.condition_rank = editConditionRank.value;
+  if (editMarketDemand?.value) updates.market_demand = parseInt(editMarketDemand.value) || 2;
   if (titleInput?.value) updates.listing_title = titleInput.value.trim();
   if (descInput?.value) updates.listing_description = descInput.value.trim();
   if (startPriceInput?.value) updates.start_price = parseInt(startPriceInput.value) || null;
@@ -1327,6 +1397,23 @@ async function cleanupWorkingItem() {
     }
     workingItem = null;
     stopTimer();
+  }
+}
+
+// 出品作業中のままロック解除済みの商品を出品待ちに戻す
+async function cleanStaleListingWork() {
+  const dbClient = db.getDB();
+  if (!dbClient) return;
+  const { data } = await dbClient.from('items')
+    .select('mgmt_num')
+    .eq('status', CONFIG.STATUS.LISTING_WORK)
+    .is('locked_by', null)
+    .limit(50);
+  if (data && data.length > 0) {
+    for (const item of data) {
+      await db.updateItemStatus(item.mgmt_num, CONFIG.STATUS.LIST_WAIT, 'system');
+    }
+    console.log(`${data.length}件の放置「出品作業中」を出品待ちに戻しました`);
   }
 }
 

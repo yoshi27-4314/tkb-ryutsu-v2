@@ -123,13 +123,18 @@ export function enableSwipeBack(element, onSwipeRight) {
   }, { passive: true });
 }
 
-// --- カメラ撮影 ---
-export function capturePhoto() {
+// --- カメラ撮影 / ファイル選択 ---
+// cameraOnly=true: カメラのみ（分荷判定の撮影時）
+// cameraOnly=false: カメラ+ファイル選択（出品写真追加時など）
+export function capturePhoto(cameraOnly = false) {
   return new Promise((resolve) => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = 'image/*';
-    input.capture = 'environment';
+    if (cameraOnly) {
+      input.capture = 'environment';
+    }
+    // capture属性なし → スマホでもカメラ/ファイル選択が選べる
     input.addEventListener('change', () => {
       if (input.files[0]) {
         resolve(input.files[0]);
