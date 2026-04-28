@@ -1008,10 +1008,20 @@ async function completeListing(container, mgmtNum) {
     finalDescription = itemHeader + '\n\n' + description;
   }
 
-  doCompleteListing(container, mgmtNum, { title, description: finalDescription, startPrice, targetPrice, channelName });
+  // 編集フィールドの値も取得
+  const shippingSize = parseInt(container.querySelector('#editShippingSize')?.value) || null;
+  const conditionRank = container.querySelector('#editConditionRank')?.value || null;
+  const marketDemand = parseInt(container.querySelector('#editMarketDemand')?.value) || 2;
+  const productName = container.querySelector('#editProductName')?.value?.trim() || null;
+  const modelNumber = container.querySelector('#editModelNumber')?.value?.trim() || null;
+
+  doCompleteListing(container, mgmtNum, {
+    title, description: finalDescription, startPrice, targetPrice, channelName,
+    shippingSize, conditionRank, marketDemand, productName, modelNumber,
+  });
 }
 
-async function doCompleteListing(container, mgmtNum, { title, description, startPrice, targetPrice, channelName }) {
+async function doCompleteListing(container, mgmtNum, { title, description, startPrice, targetPrice, channelName, shippingSize, conditionRank, marketDemand, productName, modelNumber }) {
   const staff = getCurrentStaff();
   const elapsed = stopTimer();
 
@@ -1031,16 +1041,32 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
       staff_mark: staffMark,
     };
 
+    // 編集フィールド
+    if (shippingSize) updates.shipping_size = shippingSize;
+    if (conditionRank) updates.condition_rank = conditionRank;
+    if (marketDemand) updates.market_demand = marketDemand;
+    if (productName) updates.product_name = productName;
+    if (modelNumber) updates.model_number = modelNumber;
+
     // チャンネル変更
     if (channelName) {
       updates.channel_name = channelName;
     }
 
-    // ステータス更新 + ロック解除
-    const result = await db.updateItemStatus(mgmtNum, CONFIG.STATUS.LISTING, staff?.name || '', updates);
+    // まず商品情報を先に保存（ステータス変更と分離）
+    const saveResult = await db.updateItem(mgmtNum, updates);
+    if (!saveResult) {
+      console.error('出品完了: 商品情報保存失敗', mgmtNum, updates);
+      showToast('商品情報の保存に失敗しました');
+      openListingWork(container, mgmtNum);
+      return;
+    }
+
+    // ステータス更新（別のDB呼び出しで）
+    const result = await db.updateItemStatus(mgmtNum, CONFIG.STATUS.LISTING, staff?.name || '');
     if (!result) {
       console.error('出品完了: ステータス更新失敗', mgmtNum);
-      showToast('ステータスの更新に失敗しました。もう一度試してください');
+      showToast('ステータスの更新に失敗しました。商品情報は保存済みです。もう一度お試しください');
       openListingWork(container, mgmtNum);
       return;
     }

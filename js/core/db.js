@@ -113,14 +113,14 @@ export async function updateItem(mgmtNum, updates) {
 }
 
 export async function updateItemStatus(mgmtNum, newStatus, changedBy = '', extra = {}) {
-  if (!db) return null;
+  if (!db) { console.error('updateItemStatus: DB未初期化'); return null; }
   // 現在のステータスを取得
   const current = await getItem(mgmtNum);
-  if (!current) return null;
+  if (!current) { console.error('updateItemStatus: 商品が見つからない', mgmtNum); return null; }
 
   const updates = { status: newStatus, ...extra };
   const { data, error } = await db.from('items').update(updates).eq('mgmt_num', mgmtNum).select().single();
-  if (error) { console.error('updateItemStatus error:', error); return null; }
+  if (error) { console.error('updateItemStatus error:', mgmtNum, newStatus, error.message, error.details, error.hint); return null; }
 
   // ステータスログ
   await logStatusChange(current.id, mgmtNum, current.status, newStatus, changedBy);
