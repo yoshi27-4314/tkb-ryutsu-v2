@@ -1037,7 +1037,7 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
       target_price: targetPrice,
       listed_by: staff?.name || '',
       listed_at: new Date().toISOString(),
-      listing_duration_seconds: elapsed,
+      listing_seconds: elapsed,
       staff_mark: staffMark,
     };
 
@@ -1165,7 +1165,7 @@ function openListingDetail(container, item) {
           <div style="font-size:11px;color:#8a8a8a;margin-top:6px;">
             出品日: ${new Date(item.listed_at).toLocaleDateString('ja-JP')}
             ${item.listed_by ? ` / ${escapeHtml(item.listed_by)}` : ''}
-            ${item.listing_duration_seconds ? ` / 作業時間: ${formatDuration(item.listing_duration_seconds)}` : ''}
+            ${item.listing_seconds ? ` / 作業時間: ${formatDuration(item.listing_seconds)}` : ''}
           </div>
         ` : ''}
       </div>
