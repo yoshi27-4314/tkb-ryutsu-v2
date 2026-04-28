@@ -357,7 +357,7 @@ function renderCapture() {
 
 async function handleCapturePhoto() {
   try {
-    const file = await capturePhoto();
+    const file = await capturePhoto(true);
     if (!file) return;
     showToast('画像を処理中...');
     const base64 = await fileToBase64(file);
@@ -373,7 +373,7 @@ async function handleCapturePhoto() {
 
 async function handleBarcodeScan() {
   try {
-    const file = await capturePhoto();
+    const file = await capturePhoto(true);
     if (!file) return;
     showToast('バーコードを読み取り中...');
     // バーコード読み取り（BarcodeDetector API）
@@ -1559,7 +1559,7 @@ function renderBulkImport() {
   if (captureArea) {
     captureArea.addEventListener('click', async () => {
       try {
-        const file = await capturePhoto();
+        const file = await capturePhoto(true);
         if (!file) return;
         showToast('画像を処理中...');
         const base64 = await fileToBase64(file);
@@ -1645,7 +1645,7 @@ function renderBulkImport() {
   // 追加撮影（続きを読み取り）- 既存リストに追加、重複は品番で除外
   containerRef.querySelector('#bulkAddMore')?.addEventListener('click', async () => {
     try {
-      const file = await capturePhoto();
+      const file = await capturePhoto(true);
       if (!file) return;
       showToast('追加シートを解析中...');
       const base64 = await fileToBase64(file);
@@ -1971,7 +1971,7 @@ async function renderBulkPhotoLink() {
   // OCR search
   containerRef.querySelector('#photoLinkOcrBtn').addEventListener('click', async () => {
     try {
-      const file = await capturePhoto();
+      const file = await capturePhoto(true);
       if (!file) return;
       showToast('品番を読み取り中...');
       const base64 = await fileToBase64(file);
@@ -2062,7 +2062,7 @@ function showPhotoLinkItem(searchNum, allItems) {
 
   resultDiv.querySelector('#photoLinkCapture').addEventListener('click', async () => {
     try {
-      const file = await capturePhoto();
+      const file = await capturePhoto(true);
       if (!file) return;
       showToast('写真を処理中...');
       const base64 = await fileToBase64(file);
