@@ -2122,7 +2122,11 @@ async function uploadToDrive(base64Image, mgmtNum, photoIndex) {
     },
     body: JSON.stringify({
       managementNumber: mgmtNum,
-      images: [base64Image],
+      images: [{
+        data: base64Image,
+        name: `photo_${photoIndex || 0}.jpg`,
+        mimeType: 'image/jpeg',
+      }],
     }),
   });
 

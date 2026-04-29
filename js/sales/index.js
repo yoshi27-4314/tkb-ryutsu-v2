@@ -581,7 +581,7 @@ async function openListingWork(container, mgmtNum) {
       <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
         <button id="completeListingBtn"
           style="width:100%;padding:16px;border-radius:12px;border:none;background:#C5A258;color:#000;font-size:16px;font-weight:bold;cursor:pointer;transition:opacity 0.2s;">
-          ✅ 出品完了
+          📋 出品情報を保存
         </button>
         <div style="display:flex;gap:10px;">
           <button id="saveProgressBtn"
@@ -651,32 +651,42 @@ async function openListingWork(container, mgmtNum) {
 
       // Driveにアップロード試行
       try {
+        const photoIndex = photos.length + sessionPhotos.length;
         const resp = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-drive`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${CONFIG.AWAI_KEY}`,
+            'apikey': CONFIG.AWAI_KEY,
           },
           body: JSON.stringify({
-            mgmtNum: item.mgmt_num,
-            image: resized,
-            index: (photos.length + sessionPhotos.length),
+            managementNumber: item.mgmt_num,
+            images: [{
+              data: resized,
+              name: `photo_${photoIndex}.jpg`,
+              mimeType: 'image/jpeg',
+            }],
           }),
         });
         if (resp.ok) {
           const driveResult = await resp.json().catch(() => null);
           // Drive URLが返ってきたらDBのphoto_urlsに追加
-          if (driveResult?.url) {
+          if (driveResult?.files?.length > 0) {
+            const fileId = driveResult.files[0].id;
+            const driveUrl = `https://lh3.googleusercontent.com/d/${fileId}`;
             const currentItem = await db.getItem(item.mgmt_num);
             const currentPhotos = currentItem?.photo_urls || [];
-            currentPhotos.push(driveResult.url);
+            currentPhotos.push(driveUrl);
             await db.updateItem(item.mgmt_num, { photo_urls: currentPhotos });
           }
           showToast('写真を追加しました（Drive保存済み）');
         } else {
+          const errText = await resp.text().catch(() => '');
+          console.error('Drive upload failed:', resp.status, errText);
           showToast('写真を追加しました（ローカルのみ）');
         }
-      } catch {
+      } catch (driveErr) {
+        console.error('Drive upload error:', driveErr);
         showToast('写真を追加しました（ローカルのみ）');
       }
     } catch (err) {
@@ -1025,7 +1035,7 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
   const staff = getCurrentStaff();
   const elapsed = stopTimer();
 
-  showLoading(container, '出品登録中...');
+  showLoading(container, '保存中...');
 
   try {
     // 商品情報更新
@@ -1084,7 +1094,7 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
 
     workingItem = null;
     sessionPhotos = [];
-    showToast('出品完了しました！');
+    showToast('出品情報を保存しました。ヤフオクへの出品はブラウザから行ってください');
 
     // 完了後は一覧に戻る
     currentTab = 'list_wait';
@@ -1092,7 +1102,7 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
 
   } catch (err) {
     console.error('出品完了エラー:', err);
-    showToast('出品登録に失敗しました: ' + (err.message || ''));
+    showToast('保存に失敗しました: ' + (err.message || ''));
     // 画面を復元
     openListingWork(container, mgmtNum);
   }
