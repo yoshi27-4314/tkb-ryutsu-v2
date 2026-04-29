@@ -669,6 +669,7 @@ async function openListingWork(container, mgmtNum) {
           },
           body: JSON.stringify({
             managementNumber: item.mgmt_num,
+            channelName: item.channel_name || '',
             images: [{
               data: resized,
               name: `photo_${photoIndex}.jpg`,

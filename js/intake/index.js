@@ -479,6 +479,7 @@ async function handleAIJudgment() {
 function renderResult() {
   const r = state.aiResult;
   if (!r) { state.step = 'capture'; render(); return; }
+  state.channelName = r.channel || '';
 
   const confidence = r.confidence || 0;
   const confidenceColor = confidence >= 0.8 ? '#006B3F' : confidence >= 0.6 ? '#C5A258' : '#CE2029';
@@ -808,7 +809,7 @@ async function handleConfirm(needsApproval) {
     state.itemId = created.id;
 
     // 判定写真をDriveにアップロード（非同期、失敗しても続行）
-    uploadToDrive(state.judgmentPhoto, mgmtNum, 0).catch(e =>
+    uploadToDrive(state.judgmentPhoto, mgmtNum, 0, item.channel_name).catch(e =>
       console.warn('Drive判定写真アップロード失敗:', e)
     );
 
@@ -911,7 +912,7 @@ function handleConsult() {
       if (!created) throw new Error('登録に失敗しました');
       state.itemId = created.id;
 
-      uploadToDrive(state.judgmentPhoto, mgmtNum, 0).catch(e =>
+      uploadToDrive(state.judgmentPhoto, mgmtNum, 0, item.channel_name).catch(e =>
         console.warn('Drive判定写真アップロード失敗:', e)
       );
 
@@ -1028,7 +1029,7 @@ function renderPhotoStep() {
 
         // Driveにアップロード（非同期）
         const idx = PHOTO_SLOTS.findIndex(s => s.key === key) + 1;
-        uploadToDrive(state.photos[key], state.mgmtNum, idx).catch(e =>
+        uploadToDrive(state.photos[key], state.mgmtNum, idx, state.channelName).catch(e =>
           console.warn(`Drive写真${idx}アップロード失敗:`, e)
         );
 
@@ -2082,7 +2083,7 @@ function showPhotoLinkItem(searchNum, allItems) {
 
         // Upload to Drive
         try {
-          await uploadToDrive(resized, item.mgmt_num, 0);
+          await uploadToDrive(resized, item.mgmt_num, 0, item.channel_name);
         } catch (e) {
           console.warn('Drive upload failed:', e);
         }
@@ -2110,7 +2111,7 @@ function showPhotoLinkItem(searchNum, allItems) {
 
 // ── Google Driveアップロード ──────────────────────
 
-async function uploadToDrive(base64Image, mgmtNum, photoIndex) {
+async function uploadToDrive(base64Image, mgmtNum, photoIndex, channelName) {
   if (!base64Image || !mgmtNum) return null;
 
   const res = await fetch(`${CONFIG.AWAI_URL}/functions/v1/takeback-drive`, {
@@ -2122,6 +2123,7 @@ async function uploadToDrive(base64Image, mgmtNum, photoIndex) {
     },
     body: JSON.stringify({
       managementNumber: mgmtNum,
+      channelName: channelName || '',
       images: [{
         data: base64Image,
         name: `photo_${photoIndex || 0}.jpg`,
@@ -2219,7 +2221,7 @@ function showPhotoPreview(key) {
         const base64 = await fileToBase64(file);
         state.photos[key] = await resizeImage(base64, 1600);
         const idx = PHOTO_SLOTS.findIndex(s => s.key === key) + 1;
-        uploadToDrive(state.photos[key], state.mgmtNum, idx).catch(() => {});
+        uploadToDrive(state.photos[key], state.mgmtNum, idx, state.channelName).catch(() => {});
         render();
       } catch (e) {
         showToast('撮影に失敗しました');
