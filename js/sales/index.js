@@ -426,7 +426,7 @@ async function openListingWork(container, mgmtNum) {
           ${escapeHtml(channel?.name || item.channel_name || '未設定')} | 状態: ${escapeHtml(item.condition_rank || '—')}
           | サイズ: ${escapeHtml(item.product_size || item.shipping_size ? item.shipping_size + 'サイズ' : '—')}
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px;">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:6px;margin-bottom:6px;">
           <div>
             <label style="font-size:10px;color:#8a8a8a;">商品名</label>
             <input id="editProductName" type="text" value="${escapeHtml(item.product_name || '')}"
@@ -435,6 +435,11 @@ async function openListingWork(container, mgmtNum) {
           <div>
             <label style="font-size:10px;color:#8a8a8a;">型番</label>
             <input id="editModelNumber" type="text" value="${escapeHtml(item.model_number || '')}"
+              style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:6px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:12px;outline:none;">
+          </div>
+          <div>
+            <label style="font-size:10px;color:#8a8a8a;">ロケーション</label>
+            <input id="editLocation" type="text" value="${escapeHtml(item.location || '')}" placeholder="例: A-3-2"
               style="width:100%;box-sizing:border-box;padding:6px 8px;border-radius:6px;border:1px solid #dde0e6;background:#f5f5f5;color:#1C2541;font-size:12px;outline:none;">
           </div>
         </div>
@@ -1027,14 +1032,15 @@ async function completeListing(container, mgmtNum) {
   const marketDemand = parseInt(container.querySelector('#editMarketDemand')?.value) || 2;
   const productName = container.querySelector('#editProductName')?.value?.trim() || null;
   const modelNumber = container.querySelector('#editModelNumber')?.value?.trim() || null;
+  const location = container.querySelector('#editLocation')?.value?.trim() || null;
 
   doCompleteListing(container, mgmtNum, {
     title, description: finalDescription, startPrice, targetPrice, channelName,
-    shippingSize, conditionRank, marketDemand, productName, modelNumber,
+    shippingSize, conditionRank, marketDemand, productName, modelNumber, location,
   });
 }
 
-async function doCompleteListing(container, mgmtNum, { title, description, startPrice, targetPrice, channelName, shippingSize, conditionRank, marketDemand, productName, modelNumber }) {
+async function doCompleteListing(container, mgmtNum, { title, description, startPrice, targetPrice, channelName, shippingSize, conditionRank, marketDemand, productName, modelNumber, location }) {
   const staff = getCurrentStaff();
   const elapsed = stopTimer();
 
@@ -1060,6 +1066,7 @@ async function doCompleteListing(container, mgmtNum, { title, description, start
     if (marketDemand) updates.market_demand = marketDemand;
     if (productName) updates.product_name = productName;
     if (modelNumber) updates.model_number = modelNumber;
+    if (location) updates.location = location;
 
     // チャンネル変更
     if (channelName) {
@@ -1126,10 +1133,12 @@ async function saveProgress(container, mgmtNum) {
   const editShippingSize = container.querySelector('#editShippingSize');
   const editConditionRank = container.querySelector('#editConditionRank');
   const editMarketDemand = container.querySelector('#editMarketDemand');
+  const editLocation = container.querySelector('#editLocation');
 
   const updates = {};
   if (editName?.value) updates.product_name = editName.value.trim();
   if (editModel?.value) updates.model_number = editModel.value.trim();
+  if (editLocation?.value) updates.location = editLocation.value.trim();
   if (editShippingSize?.value) updates.shipping_size = parseInt(editShippingSize.value) || null;
   if (editConditionRank?.value) updates.condition_rank = editConditionRank.value;
   if (editMarketDemand?.value) updates.market_demand = parseInt(editMarketDemand.value) || 2;
