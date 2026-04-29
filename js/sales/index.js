@@ -296,6 +296,9 @@ function renderItemCard(item) {
   const lockedBadge = item.locked_by
     ? `<span style="display:inline-block;padding:2px 6px;border-radius:8px;font-size:10px;background:#f4433622;color:#CE2029;margin-left:4px;">🔒 ${escapeHtml(item.locked_by)}</span>`
     : '';
+  const hasListingBadge = (item.status === CONFIG.STATUS.LIST_WAIT || item.status === CONFIG.STATUS.JUDGED || item.status === CONFIG.STATUS.PHOTO_WAIT) && item.listing_title
+    ? `<span style="display:inline-block;padding:2px 6px;border-radius:8px;font-size:10px;background:#C5A25822;color:#C5A258;margin-left:4px;">出品情報あり</span>`
+    : '';
   const priorityBadge = item.priority_score != null
     ? `<span style="font-size:10px;color:#C5A258;margin-left:4px;">★${item.priority_score}</span>`
     : '';
@@ -322,7 +325,7 @@ function renderItemCard(item) {
         <div style="flex:1;min-width:0;">
           <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:3px;">
             <span style="font-size:12px;color:#C5A258;font-weight:bold;">${markBadge}${escapeHtml(item.mgmt_num)}</span>
-            <div style="flex-shrink:0;">${statusBadge(item.status)}${lockedBadge}</div>
+            <div style="flex-shrink:0;">${statusBadge(item.status)}${hasListingBadge}${lockedBadge}</div>
           </div>
           <div style="font-size:13px;color:#1C2541;font-weight:bold;margin-bottom:3px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
             ${escapeHtml(item.product_name || '（商品名なし）')}
